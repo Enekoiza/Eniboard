@@ -7,7 +7,8 @@ namespace Api.Middleware;
 /// <summary>
 /// Global exception handler mapping application exceptions to RFC 7807 Problem Details
 /// responses: FluentValidation/validation failures -> 400, not-found -> 404,
-/// WIP-limit violations -> 409, anything else -> 500.
+/// WIP-limit violations -> 409, anything else -> 500. 500 responses carry a generic
+/// detail message; the underlying exception is logged, not exposed to the client.
 /// </summary>
 public sealed class ProblemDetailsExceptionHandler(ILogger<ProblemDetailsExceptionHandler> logger) : IExceptionHandler
 {
@@ -33,7 +34,7 @@ public sealed class ProblemDetailsExceptionHandler(ILogger<ProblemDetailsExcepti
         {
             Status = statusCode,
             Title = title,
-            Detail = exception.Message,
+            Detail = statusCode == StatusCodes.Status500InternalServerError ? "An unexpected error occurred. Please try again later." : exception.Message,
             Instance = httpContext.Request.Path,
         };
 
