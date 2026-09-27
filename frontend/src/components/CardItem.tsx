@@ -36,7 +36,7 @@ export function CardItem({ card }: CardItemProps) {
       style={style}
       {...listeners}
       {...attributes}
-      className={`flex cursor-grab flex-col gap-2 rounded-lg border border-gray-800 bg-gray-900 p-3 shadow-sm active:cursor-grabbing ${
+      className={`flex cursor-grab flex-col gap-2 rounded-lg border border-white/10 bg-gray-950/70 p-3 shadow-sm backdrop-blur-sm active:cursor-grabbing ${
         isDragging ? "z-10 opacity-60" : ""
       }`}
     >

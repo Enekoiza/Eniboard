@@ -28,7 +28,7 @@ export function DashboardPage() {
       ) : null}
 
       {!isLoading && !isError && apps?.length === 0 ? (
-        <div className="rounded-card border border-dashed border-gray-700 p-10 text-center text-gray-400">
+        <div className="rounded-card border border-dashed border-white/10 bg-gray-950/40 p-10 text-center text-gray-400 backdrop-blur-sm">
           No apps yet. Create your first app to get its board set up automatically.
         </div>
       ) : null}
@@ -38,7 +38,7 @@ export function DashboardPage() {
           <Link
             key={app.id}
             to={`/apps/${app.id}`}
-            className="flex flex-col gap-3 rounded-card border border-gray-800 bg-gray-900 p-5 transition-colors hover:border-brand"
+            className="flex flex-col gap-3 rounded-card border border-white/10 bg-gray-950/70 p-5 backdrop-blur-sm transition-colors hover:border-brand"
           >
             <div className="flex items-center gap-3">
               <span

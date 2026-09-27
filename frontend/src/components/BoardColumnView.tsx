@@ -29,8 +29,8 @@ export function BoardColumnView({ column, appId }: BoardColumnViewProps) {
 
       <div
         ref={setNodeRef}
-        className={`flex min-h-[120px] flex-1 flex-col gap-2 rounded-card border border-dashed p-2 transition-colors ${
-          isOver ? "border-brand bg-brand/5" : "border-gray-800"
+        className={`flex min-h-[120px] flex-1 flex-col gap-2 rounded-card border border-dashed bg-gray-950/40 p-2 backdrop-blur-sm transition-colors ${
+          isOver ? "border-brand bg-brand/10" : "border-white/10"
         }`}
       >
         {column.cards.map((card) => (

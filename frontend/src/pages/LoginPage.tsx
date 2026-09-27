@@ -48,8 +48,8 @@ export function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-950 px-4">
-      <div className="w-full max-w-sm rounded-card border border-gray-800 bg-gray-900 p-8 shadow-xl">
+    <div className="bg-app-gradient flex min-h-screen items-center justify-center px-4">
+      <div className="w-full max-w-sm rounded-card border border-white/10 bg-gray-950/70 p-8 shadow-2xl backdrop-blur-md">
         <h1 className="mb-1 text-2xl font-semibold text-white">Eniboard</h1>
         <p className="mb-6 text-sm text-gray-400">Sign in to manage your project boards</p>
 

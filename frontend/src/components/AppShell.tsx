@@ -33,8 +33,8 @@ export function AppShell({ children }: AppShellProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100">
-      <header className="border-b border-gray-800 bg-gray-900/60">
+    <div className="bg-app-gradient min-h-screen text-gray-100">
+      <header className="border-b border-white/10 bg-gray-950/60 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <Link to="/" className="text-lg font-semibold text-white">
             Eniboard
