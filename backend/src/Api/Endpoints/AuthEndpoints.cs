@@ -18,11 +18,21 @@ public static class AuthEndpoints
         group.MapPost("/login", async (
             LoginRequest request,
             UserManager<ApplicationUser> userManager,
+            SignInManager<ApplicationUser> signInManager,
             IVaultSecretsProvider vault,
             CancellationToken cancellationToken) =>
         {
             var user = await userManager.FindByNameAsync(request.Username);
-            if (user is null || !await userManager.CheckPasswordAsync(user, request.Password))
+            if (user is null)
+            {
+                return Results.Problem(
+                    title: "Invalid credentials",
+                    detail: "Username or password is incorrect.",
+                    statusCode: StatusCodes.Status401Unauthorized);
+            }
+
+            var result = await signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
+            if (!result.Succeeded)
             {
                 return Results.Problem(
                     title: "Invalid credentials",
@@ -54,6 +64,7 @@ public static class AuthEndpoints
             return Results.Ok(new LoginResponse(accessToken, expiresAt));
         })
         .AllowAnonymous()
+        .RequireRateLimiting("login")
         .WithName("Login")
         .Produces<LoginResponse>()
         .Produces(StatusCodes.Status401Unauthorized);

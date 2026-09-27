@@ -84,10 +84,12 @@ public partial class GitIntegrationService(
 
     public async Task HandleMergeWebhookAsync(MergeWebhookPayload payload, CancellationToken cancellationToken = default)
     {
-        if (string.Equals(payload.MergedBranch, payload.DefaultBranch, StringComparison.Ordinal))
+        if (!string.Equals(payload.BaseBranch, payload.DefaultBranch, StringComparison.Ordinal))
         {
-            // The default branch itself was pushed to directly; there is no feature branch to link.
-            logger.LogInformation("Ignoring push to the default branch '{Branch}' itself.", payload.DefaultBranch);
+            logger.LogInformation(
+                "Ignoring pull request merged into non-default branch '{Base}' (default is '{Default}')",
+                payload.BaseBranch,
+                payload.DefaultBranch);
             return;
         }
 

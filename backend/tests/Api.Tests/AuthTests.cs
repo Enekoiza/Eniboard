@@ -38,4 +38,34 @@ public class AuthTests : IAsyncLifetime
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
+
+    [Fact]
+    public async Task Login_AfterFiveFailedAttempts_LocksOutEvenWithCorrectPassword()
+    {
+        var client = _factory.CreateClient();
+
+        for (var i = 0; i < 5; i++)
+        {
+            var failedResponse = await client.PostAsJsonAsync("/auth/login", new LoginRequest("testadmin", "WrongPassword!"));
+            Assert.Equal(HttpStatusCode.Unauthorized, failedResponse.StatusCode);
+        }
+
+        var correctPasswordResponse = await client.PostAsJsonAsync("/auth/login", new LoginRequest("testadmin", "TestPassword123!"));
+        Assert.Equal(HttpStatusCode.Unauthorized, correctPasswordResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task Login_ExceedingRateLimit_Returns429()
+    {
+        var client = _factory.CreateClient();
+
+        for (var i = 0; i < 10; i++)
+        {
+            var response = await client.PostAsJsonAsync("/auth/login", new LoginRequest("testadmin", "WrongPassword!"));
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        }
+
+        var throttledResponse = await client.PostAsJsonAsync("/auth/login", new LoginRequest("testadmin", "WrongPassword!"));
+        Assert.Equal(HttpStatusCode.TooManyRequests, throttledResponse.StatusCode);
+    }
 }

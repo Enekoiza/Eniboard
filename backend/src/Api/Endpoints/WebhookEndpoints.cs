@@ -37,10 +37,21 @@ public static class WebhookEndpoints
                 return Results.Unauthorized();
             }
 
-            var payload = ParsePushPayload(rawBody);
+            var eventName = request.Headers["X-GitHub-Event"].ToString();
+            if (string.Equals(eventName, "ping", StringComparison.OrdinalIgnoreCase))
+            {
+                return Results.Ok(new { message = "pong" });
+            }
+
+            if (!string.Equals(eventName, "pull_request", StringComparison.OrdinalIgnoreCase))
+            {
+                return Results.Ok(new { message = "Payload ignored: not a pull_request event." });
+            }
+
+            var payload = ParseMergedPullRequestPayload(rawBody);
             if (payload is null)
             {
-                return Results.Ok(new { message = "Payload ignored: not a recognized push event." });
+                return Results.Ok(new { message = "Payload ignored: pull request was not merged." });
             }
 
             await gitIntegrationService.HandleMergeWebhookAsync(payload, cancellationToken);
@@ -71,27 +82,55 @@ public static class WebhookEndpoints
     }
 
     /// <summary>
-    /// Extracts the minimal shape needed from a GitHub "push" webhook payload: the ref
-    /// that was pushed, the repository URL, and its default branch.
+    /// Extracts the minimal shape needed from a GitHub `pull_request` webhook payload, but
+    /// only when the payload represents a merged pull request: the head (merged) branch, the
+    /// base branch it was merged into, the repository URL, and its default branch.
     /// </summary>
-    private static MergeWebhookPayload? ParsePushPayload(string rawBody)
+    private static MergeWebhookPayload? ParseMergedPullRequestPayload(string rawBody)
     {
         using var document = JsonDocument.Parse(rawBody);
         var root = document.RootElement;
 
-        if (!root.TryGetProperty("ref", out var refElement))
+        if (!root.TryGetProperty("action", out var actionElement) ||
+            !string.Equals(actionElement.GetString(), "closed", StringComparison.Ordinal))
         {
             return null;
         }
 
-        var pushedRef = refElement.GetString() ?? string.Empty;
-        const string branchPrefix = "refs/heads/";
-        if (!pushedRef.StartsWith(branchPrefix, StringComparison.Ordinal))
+        if (!root.TryGetProperty("pull_request", out var pullRequestElement))
         {
             return null;
         }
 
-        var mergedBranch = pushedRef[branchPrefix.Length..];
+        if (!pullRequestElement.TryGetProperty("merged", out var mergedElement) ||
+            mergedElement.ValueKind != JsonValueKind.True)
+        {
+            return null;
+        }
+
+        if (!pullRequestElement.TryGetProperty("head", out var headElement) ||
+            !headElement.TryGetProperty("ref", out var headRefElement))
+        {
+            return null;
+        }
+
+        var mergedBranch = headRefElement.GetString();
+        if (string.IsNullOrEmpty(mergedBranch))
+        {
+            return null;
+        }
+
+        if (!pullRequestElement.TryGetProperty("base", out var baseElement) ||
+            !baseElement.TryGetProperty("ref", out var baseRefElement))
+        {
+            return null;
+        }
+
+        var baseBranch = baseRefElement.GetString();
+        if (string.IsNullOrEmpty(baseBranch))
+        {
+            return null;
+        }
 
         var repoUrl = root.TryGetProperty("repository", out var repoElement) &&
                       repoElement.TryGetProperty("html_url", out var htmlUrlElement)
@@ -103,7 +142,7 @@ public static class WebhookEndpoints
             ? defaultBranchElement.GetString() ?? "main"
             : "main";
 
-        return new MergeWebhookPayload(repoUrl, mergedBranch, defaultBranch);
+        return new MergeWebhookPayload(repoUrl, mergedBranch, baseBranch, defaultBranch);
     }
 
     private sealed class GitHubWebhookMarker;

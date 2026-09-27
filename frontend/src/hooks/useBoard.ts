@@ -31,6 +31,7 @@ export function useMoveCard(appId: string | undefined) {
 
       if (previous) {
         const next: Board = {
+          ...previous,
           columns: previous.columns.map((column) => ({ ...column, cards: [...column.cards] })),
         };
         let movedCard = null;

@@ -14,8 +14,8 @@ const newCardSchema = z.object({
   appId: z.string().min(1, "Choose an app"),
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
-  cardType: z.enum(["feature", "bug", "chore", "refactor"]),
-  priority: z.enum(["low", "medium", "high", "urgent"]),
+  cardType: z.enum(["feature", "bug", "chore", "idea"]),
+  priority: z.enum(["low", "medium", "high", "critical"]),
 });
 
 type NewCardFormValues = z.infer<typeof newCardSchema>;
@@ -46,7 +46,7 @@ export function NewCardModal() {
   });
 
   const selectedAppId = watch("appId");
-  const { data: selectedAppBoard } = useBoard(defaults.columnId ? undefined : selectedAppId || undefined);
+  const { data: selectedAppBoard } = useBoard(selectedAppId || undefined);
   const fallbackColumnId = defaults.columnId ?? [...(selectedAppBoard?.columns ?? [])].sort((a, b) => a.order - b.order)[0]?.id;
 
   useEffect(() => {
@@ -64,11 +64,12 @@ export function NewCardModal() {
 
   const createCardMutation = useMutation({
     mutationFn: (values: NewCardFormValues) => {
-      if (!fallbackColumnId) {
+      const boardId = selectedAppBoard?.id;
+      if (!boardId || !fallbackColumnId) {
         throw new ApiError(400, null, "This app's board hasn't loaded yet. Select the app and try again.");
       }
       return cardsApi.create({
-        appId: values.appId,
+        boardId,
         columnId: fallbackColumnId,
         title: values.title,
         description: values.description,

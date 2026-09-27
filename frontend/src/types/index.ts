@@ -1,6 +1,6 @@
-export type CardType = "feature" | "bug" | "chore" | "refactor";
+export type CardType = "feature" | "bug" | "chore" | "idea";
 
-export type Priority = "low" | "medium" | "high" | "urgent";
+export type Priority = "low" | "medium" | "high" | "critical";
 
 export interface AppSummary {
   id: string;
@@ -27,6 +27,8 @@ export interface BoardColumn {
 }
 
 export interface Board {
+  id: string;
+  appId: string;
   columns: BoardColumn[];
 }
 
@@ -36,7 +38,8 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
-  token: string;
+  accessToken: string;
+  expiresAt: string;
 }
 
 export interface CreateAppRequest {
@@ -46,7 +49,7 @@ export interface CreateAppRequest {
 }
 
 export interface CreateCardRequest {
-  appId: string;
+  boardId: string;
   columnId: string;
   title: string;
   description?: string;

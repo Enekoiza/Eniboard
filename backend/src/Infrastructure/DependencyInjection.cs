@@ -56,6 +56,10 @@ public static class DependencyInjection
                 // Single-user personal app: keep the seeded password's own strength rules,
                 // don't force additional runtime policy beyond the defaults.
                 options.User.RequireUniqueEmail = false;
+
+                options.Lockout.AllowedForNewUsers = true;
+                options.Lockout.MaxFailedAccessAttempts = 5;
+                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
             })
             .AddEntityFrameworkStores<EniboardDbContext>()
             .AddDefaultTokenProviders();

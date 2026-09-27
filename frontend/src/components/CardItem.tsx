@@ -9,14 +9,14 @@ const PRIORITY_STYLES: Record<Card["priority"], string> = {
   low: "bg-gray-700 text-gray-200",
   medium: "bg-sky-800 text-sky-200",
   high: "bg-amber-800 text-amber-200",
-  urgent: "bg-red-800 text-red-200",
+  critical: "bg-red-800 text-red-200",
 };
 
 const TYPE_LABELS: Record<Card["cardType"], string> = {
   feature: "Feature",
   bug: "Bug",
   chore: "Chore",
-  refactor: "Refactor",
+  idea: "Idea",
 };
 
 export function CardItem({ card }: CardItemProps) {

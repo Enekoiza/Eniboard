@@ -34,7 +34,7 @@ export function LoginPage() {
     setIsSubmitting(true);
     try {
       const response = await authApi.login(values);
-      login(response.token);
+      login(response.accessToken);
       navigate("/", { replace: true });
     } catch (error) {
       if (error instanceof ApiError) {

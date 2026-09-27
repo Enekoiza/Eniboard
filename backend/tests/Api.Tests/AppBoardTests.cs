@@ -27,7 +27,7 @@ public class AppBoardTests : IAsyncLifetime
 
         var boardResponse = await client.GetAsync($"/apps/{created!.Id}/board");
         boardResponse.EnsureSuccessStatusCode();
-        var board = await boardResponse.Content.ReadFromJsonAsync<BoardResponse>();
+        var board = await boardResponse.Content.ReadFromJsonAsync<BoardResponse>(TestJson.Options);
 
         Assert.NotNull(board);
         Assert.Equal(4, board!.Columns.Count);
