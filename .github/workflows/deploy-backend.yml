@@ -44,7 +44,7 @@ jobs:
 
       - name: Copy build to VPS
         run: >
-          rsync -avz --delete
+          rsync -avz --delete --omit-dir-times --no-perms
           "${{ runner.temp }}/publish/"
           "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_DEPLOY_PATH }}/"
 
