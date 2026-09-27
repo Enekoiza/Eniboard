@@ -1,0 +1,17 @@
+# .NET
+bin/
+obj/
+*.user
+
+# Node
+node_modules/
+dist/
+.env
+.env.local
+
+# IDE / OS
+.vs/
+.vscode/
+*.swp
+.DS_Store
+.claude/scheduled_tasks.lock
