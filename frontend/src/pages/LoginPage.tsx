@@ -62,7 +62,7 @@ export function LoginPage() {
               id="username"
               type="text"
               autoComplete="username"
-              className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+              className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white outline-none focus:border-brand-focus"
               {...register("username")}
             />
             {errors.username ? <p className="text-xs text-red-400">{errors.username.message}</p> : null}
@@ -76,7 +76,7 @@ export function LoginPage() {
               id="password"
               type="password"
               autoComplete="current-password"
-              className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+              className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white outline-none focus:border-brand-focus"
               {...register("password")}
             />
             {errors.password ? <p className="text-xs text-red-400">{errors.password.message}</p> : null}

@@ -74,7 +74,7 @@ export function NewAppModal({ onClose }: NewAppModalProps) {
             <input
               id="new-app-name"
               type="text"
-              className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+              className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white outline-none focus:border-brand-focus"
               {...register("name")}
             />
             {errors.name ? <p className="text-xs text-red-400">{errors.name.message}</p> : null}
@@ -101,7 +101,7 @@ export function NewAppModal({ onClose }: NewAppModalProps) {
               id="new-app-repo"
               type="text"
               placeholder="https://github.com/you/repo"
-              className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+              className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white outline-none focus:border-brand-focus"
               {...register("repoUrl")}
             />
             {errors.repoUrl ? <p className="text-xs text-red-400">{errors.repoUrl.message}</p> : null}

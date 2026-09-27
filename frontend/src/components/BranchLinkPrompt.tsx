@@ -29,7 +29,7 @@ export function BranchLinkPrompt({ cardTitle, onConfirm, onCancel }: BranchLinkP
           placeholder="feature/my-branch"
           value={branch}
           onChange={(event) => setBranch(event.target.value)}
-          className="mb-4 w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+          className="mb-4 w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white outline-none focus:border-brand-focus"
         />
         <div className="flex justify-end gap-2">
           <button
