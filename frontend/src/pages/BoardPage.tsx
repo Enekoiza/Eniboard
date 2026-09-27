@@ -74,12 +74,12 @@ export function BoardPage() {
   };
 
   if (isLoading) {
-    return <p className="text-sm text-gray-400">Loading board...</p>;
+    return <p className="inline-block rounded-lg bg-gray-950/70 px-3 py-2 text-sm text-gray-300">Loading board...</p>;
   }
 
   if (isError || !board) {
     return (
-      <p className="text-sm text-red-400">
+      <p className="inline-block rounded-lg bg-gray-950/70 px-3 py-2 text-sm text-red-300">
         Failed to load board{error instanceof Error ? `: ${error.message}` : ""}.
       </p>
     );
@@ -89,8 +89,8 @@ export function BoardPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center gap-3">
-        <Link to="/" className="text-sm text-gray-400 hover:text-white">
+      <div className="mb-6 flex items-center gap-3 rounded-card bg-gray-950/70 px-4 py-3">
+        <Link to="/" className="text-sm text-gray-300 hover:text-white">
           ← Apps
         </Link>
         {app ? (

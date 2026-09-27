@@ -105,7 +105,7 @@ export function NewCardModal() {
       role="presentation"
     >
       <div
-        className="w-full max-w-md rounded-card border border-gray-800 bg-gray-900 p-6 shadow-2xl"
+        className="w-full max-w-md rounded-card border border-white/10 bg-gray-950/80 p-6 shadow-2xl backdrop-blur-md"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
@@ -127,7 +127,7 @@ export function NewCardModal() {
             </label>
             <select
               id="new-card-app"
-              className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+              className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white outline-none focus:border-brand-focus"
               {...register("appId")}
             >
               <option value="">Select an app</option>
@@ -147,7 +147,7 @@ export function NewCardModal() {
             <input
               id="new-card-title"
               type="text"
-              className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+              className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white outline-none focus:border-brand-focus"
               {...register("title")}
             />
             {errors.title ? <p className="text-xs text-red-400">{errors.title.message}</p> : null}
@@ -160,7 +160,7 @@ export function NewCardModal() {
             <textarea
               id="new-card-description"
               rows={3}
-              className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+              className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white outline-none focus:border-brand-focus"
               {...register("description")}
             />
           </div>
@@ -172,7 +172,7 @@ export function NewCardModal() {
               </label>
               <select
                 id="new-card-type"
-                className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+                className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white outline-none focus:border-brand-focus"
                 {...register("cardType")}
               >
                 {CARD_TYPE_OPTIONS.map((option) => (
@@ -189,7 +189,7 @@ export function NewCardModal() {
               </label>
               <select
                 id="new-card-priority"
-                className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+                className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white outline-none focus:border-brand-focus"
                 {...register("priority")}
               >
                 {PRIORITY_OPTIONS.map((option) => (

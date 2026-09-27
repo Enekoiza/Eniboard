@@ -16,7 +16,7 @@ export function BranchLinkPrompt({ cardTitle, onConfirm, onCancel }: BranchLinkP
       role="presentation"
     >
       <div
-        className="w-full max-w-sm rounded-card border border-gray-800 bg-gray-900 p-6 shadow-2xl"
+        className="w-full max-w-sm rounded-card border border-white/10 bg-gray-950/80 p-6 shadow-2xl backdrop-blur-md"
         onClick={(event) => event.stopPropagation()}
       >
         <h2 className="mb-1 text-lg font-semibold text-white">Move to Doing</h2>
@@ -29,7 +29,7 @@ export function BranchLinkPrompt({ cardTitle, onConfirm, onCancel }: BranchLinkP
           placeholder="feature/my-branch"
           value={branch}
           onChange={(event) => setBranch(event.target.value)}
-          className="mb-4 w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+          className="mb-4 w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white outline-none focus:border-brand-focus"
         />
         <div className="flex justify-end gap-2">
           <button

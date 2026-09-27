@@ -9,7 +9,7 @@ export function DashboardPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex items-center justify-between rounded-card bg-gray-950/70 px-4 py-3">
         <h1 className="text-2xl font-semibold text-white">Your apps</h1>
         <button
           type="button"
@@ -20,15 +20,17 @@ export function DashboardPage() {
         </button>
       </div>
 
-      {isLoading ? <p className="text-sm text-gray-400">Loading apps...</p> : null}
+      {isLoading ? (
+        <p className="inline-block rounded-lg bg-gray-950/70 px-3 py-2 text-sm text-gray-300">Loading apps...</p>
+      ) : null}
       {isError ? (
-        <p className="text-sm text-red-400">
+        <p className="inline-block rounded-lg bg-gray-950/70 px-3 py-2 text-sm text-red-300">
           Failed to load apps{error instanceof Error ? `: ${error.message}` : ""}.
         </p>
       ) : null}
 
       {!isLoading && !isError && apps?.length === 0 ? (
-        <div className="rounded-card border border-dashed border-gray-700 p-10 text-center text-gray-400">
+        <div className="rounded-card border border-dashed border-white/10 bg-gray-950/70 p-10 text-center text-gray-300 backdrop-blur-sm">
           No apps yet. Create your first app to get its board set up automatically.
         </div>
       ) : null}
@@ -38,7 +40,7 @@ export function DashboardPage() {
           <Link
             key={app.id}
             to={`/apps/${app.id}`}
-            className="flex flex-col gap-3 rounded-card border border-gray-800 bg-gray-900 p-5 transition-colors hover:border-brand"
+            className="flex flex-col gap-3 rounded-card border border-white/10 bg-gray-950/80 p-5 backdrop-blur-sm transition-colors hover:border-brand"
           >
             <div className="flex items-center gap-3">
               <span
@@ -48,8 +50,8 @@ export function DashboardPage() {
               />
               <h2 className="truncate text-base font-semibold text-white">{app.name}</h2>
             </div>
-            {app.repoUrl ? <p className="truncate text-xs text-gray-500">{app.repoUrl}</p> : null}
-            <div className="mt-2 flex gap-4 text-xs text-gray-500">
+            {app.repoUrl ? <p className="truncate text-xs text-gray-400">{app.repoUrl}</p> : null}
+            <div className="mt-2 flex gap-4 text-xs text-gray-400">
               <span>Board ready</span>
             </div>
           </Link>
