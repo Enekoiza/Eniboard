@@ -47,7 +47,10 @@ export function NewCardModal() {
 
   const selectedAppId = watch("appId");
   const { data: selectedAppBoard } = useBoard(selectedAppId || undefined);
-  const fallbackColumnId = defaults.columnId ?? [...(selectedAppBoard?.columns ?? [])].sort((a, b) => a.order - b.order)[0]?.id;
+  const selectedBoardColumns = [...(selectedAppBoard?.columns ?? [])].sort((a, b) => a.order - b.order);
+  const usesDefaultColumn =
+    !!defaults.columnId && selectedBoardColumns.some((column) => column.id === defaults.columnId);
+  const targetColumnId = usesDefaultColumn ? defaults.columnId : selectedBoardColumns[0]?.id;
 
   useEffect(() => {
     if (isOpen) {
@@ -65,12 +68,12 @@ export function NewCardModal() {
   const createCardMutation = useMutation({
     mutationFn: (values: NewCardFormValues) => {
       const boardId = selectedAppBoard?.id;
-      if (!boardId || !fallbackColumnId) {
+      if (!boardId || !targetColumnId) {
         throw new ApiError(400, null, "This app's board hasn't loaded yet. Select the app and try again.");
       }
       return cardsApi.create({
         boardId,
-        columnId: fallbackColumnId,
+        columnId: targetColumnId,
         title: values.title,
         description: values.description,
         cardType: values.cardType,
@@ -198,7 +201,7 @@ export function NewCardModal() {
             </div>
           </div>
 
-          {!defaults.columnId && selectedAppId ? (
+          {!usesDefaultColumn && selectedAppId ? (
             <p className="rounded-lg border border-amber-800 bg-amber-950 px-3 py-2 text-xs text-amber-300">
               This card will be added to the app's first column (Backlog). Open it from the board to target a
               different column.

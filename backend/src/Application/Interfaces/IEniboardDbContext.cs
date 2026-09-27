@@ -20,6 +20,11 @@ public interface IEniboardDbContext
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 
     Task<IEniboardTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default);
+
+    /// Takes a row lock on the column (SELECT ... FOR UPDATE) within the current transaction so
+    /// concurrent WIP-limit checks against the same column are serialized. Must be called inside
+    /// a transaction started via BeginTransactionAsync, before any other read in that transaction.
+    Task LockBoardColumnAsync(Guid columnId, CancellationToken cancellationToken = default);
 }
 
 /// <summary>

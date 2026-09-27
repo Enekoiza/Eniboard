@@ -36,6 +36,36 @@ public class AuthTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Login_WithMissingPassword_ReturnsBadRequest()
+    {
+        var client = _factory.CreateClient();
+
+        var response = await client.PostAsJsonAsync("/auth/login", new { username = "testadmin" });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Login_WithEmptyBody_ReturnsBadRequest()
+    {
+        var client = _factory.CreateClient();
+
+        var response = await client.PostAsJsonAsync("/auth/login", new { });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Login_WithWhitespaceUsername_ReturnsBadRequest()
+    {
+        var client = _factory.CreateClient();
+
+        var response = await client.PostAsJsonAsync("/auth/login", new LoginRequest("   ", "x"));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Login_WithWrongPassword_ReturnsUnauthorized()
     {
         var client = _factory.CreateClient();

@@ -41,8 +41,13 @@ public static class DependencyInjection
     /// </summary>
     public static IServiceCollection AddMySqlDbContext(this IServiceCollection services, string dbConnectionString)
     {
+        // Detected once here at startup, not inside the options lambda below: AddDbContext options
+        // are scoped by default, so a lambda would re-run ServerVersion.AutoDetect (and open a new
+        // MySQL connection) on every request.
+        var serverVersion = ServerVersion.AutoDetect(dbConnectionString);
+
         services.AddDbContext<EniboardDbContext>(options =>
-            options.UseMySql(dbConnectionString, ServerVersion.AutoDetect(dbConnectionString)));
+            options.UseMySql(dbConnectionString, serverVersion));
 
         return services;
     }

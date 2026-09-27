@@ -27,8 +27,14 @@ public class CardService(IEniboardDbContext db) : ICardService
             .FirstOrDefaultAsync(c => c.Id == request.ColumnId && c.BoardId == request.BoardId, cancellationToken)
             ?? throw new NotFoundException($"Column '{request.ColumnId}' was not found on board '{request.BoardId}'.");
 
+        await using var transaction = await db.BeginTransactionAsync(cancellationToken);
+
         if (column.WipLimit is not null)
         {
+            // The lock must be the first statement in the transaction, before the count: under
+            // REPEATABLE READ the count would otherwise read a snapshot fixed before the lock.
+            await db.LockBoardColumnAsync(column.Id, cancellationToken);
+
             var currentCount = await db.Cards.CountAsync(c => c.ColumnId == column.Id, cancellationToken);
             if (currentCount >= column.WipLimit)
             {
@@ -52,6 +58,7 @@ public class CardService(IEniboardDbContext db) : ICardService
 
         db.Cards.Add(card);
         await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         return ToResponse(card);
     }
@@ -91,8 +98,14 @@ public class CardService(IEniboardDbContext db) : ICardService
             .FirstOrDefaultAsync(c => c.Id == targetColumnId && c.BoardId == card.BoardId, cancellationToken)
             ?? throw new NotFoundException($"Column '{targetColumnId}' was not found on board '{card.BoardId}'.");
 
+        await using var transaction = await db.BeginTransactionAsync(cancellationToken);
+
         if (targetColumn.WipLimit is not null)
         {
+            // The lock must be the first statement in the transaction, before the count: under
+            // REPEATABLE READ the count would otherwise read a snapshot fixed before the lock.
+            await db.LockBoardColumnAsync(targetColumn.Id, cancellationToken);
+
             var occupantCount = await db.Cards.CountAsync(
                 c => c.ColumnId == targetColumn.Id && c.Id != cardId,
                 cancellationToken);
@@ -117,6 +130,7 @@ public class CardService(IEniboardDbContext db) : ICardService
         }
 
         await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return ToResponse(card);
     }
 

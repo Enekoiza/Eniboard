@@ -24,6 +24,17 @@ public class EniboardDbContext(DbContextOptions<EniboardDbContext> options)
         return new EfEniboardTransaction(transaction);
     }
 
+    public async Task LockBoardColumnAsync(Guid columnId, CancellationToken cancellationToken = default)
+    {
+        if (!Database.IsMySql())
+        {
+            return; // SQLite (tests) has no row locks / FOR UPDATE; it serializes writers itself.
+        }
+
+        await Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT `Id` FROM `BoardColumns` WHERE `Id` = {columnId} FOR UPDATE", cancellationToken);
+    }
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);

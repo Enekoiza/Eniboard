@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Application.Dtos;
+using FluentValidation;
 using Infrastructure.Identity;
 using Infrastructure.Vault;
 using Microsoft.AspNetCore.Identity;
@@ -17,11 +18,14 @@ public static class AuthEndpoints
 
         group.MapPost("/login", async (
             LoginRequest request,
+            IValidator<LoginRequest> validator,
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
             EniboardSecrets secrets,
             CancellationToken cancellationToken) =>
         {
+            await validator.ValidateAndThrowAsync(request, cancellationToken);
+
             var user = await userManager.FindByNameAsync(request.Username);
             if (user is null)
             {
@@ -66,6 +70,7 @@ public static class AuthEndpoints
         .RequireRateLimiting("login")
         .WithName("Login")
         .Produces<LoginResponse>()
+        .Produces(StatusCodes.Status400BadRequest)
         .Produces(StatusCodes.Status401Unauthorized);
     }
 }
