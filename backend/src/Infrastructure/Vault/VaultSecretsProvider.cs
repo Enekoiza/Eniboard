@@ -8,9 +8,9 @@ namespace Infrastructure.Vault;
 /// Reads Eniboard's secrets from a HashiCorp Vault KV (v2) endpoint. The Vault base
 /// address and token come from the <c>VAULT_ADDR</c> / <c>VAULT_TOKEN</c> environment
 /// variables (falling back to configuration for local overrides). The secret path
-/// itself is configurable via <c>Vault:SecretPath</c> (defaults to <c>secret/data/eniboard</c>)
-/// and is expected to contain the keys <c>db-connection-string</c>, <c>jwt-signing-key</c>,
-/// <c>seed-username</c> and <c>seed-password</c>.
+/// itself is configurable via <c>Vault:SecretPath</c> (defaults to <c>v1/secret/data/Eniboard</c>)
+/// and is expected to contain the keys <c>connection_string</c>, <c>jwt_key</c>,
+/// <c>seed_login</c> and <c>seed_password</c>.
 /// </summary>
 public sealed class VaultSecretsProvider : IVaultSecretsProvider
 {
@@ -54,7 +54,7 @@ public sealed class VaultSecretsProvider : IVaultSecretsProvider
             return _cached;
         }
 
-        var secretPath = _configuration["Vault:SecretPath"] ?? "v1/secret/data/eniboard";
+        var secretPath = _configuration["Vault:SecretPath"] ?? "v1/secret/data/Eniboard";
         using var response = await _httpClient.GetAsync(secretPath, cancellationToken);
         response.EnsureSuccessStatusCode();
 
@@ -65,10 +65,10 @@ public sealed class VaultSecretsProvider : IVaultSecretsProvider
         var data = document.RootElement.GetProperty("data").GetProperty("data");
 
         var secrets = new EniboardSecrets(
-            DbConnectionString: RequireString(data, "db-connection-string"),
-            JwtSigningKey: RequireString(data, "jwt-signing-key"),
-            SeedUsername: RequireString(data, "seed-username"),
-            SeedPassword: RequireString(data, "seed-password"));
+            DbConnectionString: RequireString(data, "connection_string"),
+            JwtSigningKey: RequireString(data, "jwt_key"),
+            SeedUsername: RequireString(data, "seed_login"),
+            SeedPassword: RequireString(data, "seed_password"));
 
         _cached = secrets;
         return secrets;

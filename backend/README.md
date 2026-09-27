@@ -43,10 +43,11 @@ backend/
 This app has a single real environment (`appsettings.json`), always backed by Vault
 (`UseVault: true`). Provide:
 
-- `VAULT_ADDR` — base address of your Vault server.
+- `VAULT_ADDR` — base address of your Vault server (defaults to `https://vault.enizama.com/`
+  via `Vault:Address` in `appsettings.json` if not set).
 - `VAULT_TOKEN` — a token with read access to the configured KV path.
-- `Vault:SecretPath` (optional, defaults to `v1/secret/data/eniboard`) — must contain the
-  keys `db-connection-string`, `jwt-signing-key`, `seed-username`, `seed-password`.
+- `Vault:SecretPath` (optional, defaults to `v1/secret/data/Eniboard`) — must contain the
+  keys `connection_string`, `jwt_key`, `seed_login`, `seed_password`.
 
 Also set:
 
