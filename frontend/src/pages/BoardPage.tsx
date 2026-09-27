@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { DndContext } from "@dnd-kit/core";
+import { DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import type { DragEndEvent } from "@dnd-kit/core";
 import { Link, useParams } from "react-router-dom";
 import { useApps } from "../hooks/useApps";
 import { useBoard, useMoveCard } from "../hooks/useBoard";
 import { BoardColumnView } from "../components/BoardColumnView";
 import { BranchLinkPrompt } from "../components/BranchLinkPrompt";
+import { CardDetailModal } from "../components/CardDetailModal";
 import { ApiError } from "../services/apiClient";
 
 const DOING_COLUMN_NAME = "Doing";
@@ -23,6 +24,12 @@ export function BoardPage() {
   const moveCardMutation = useMoveCard(appId);
   const [blockedMessage, setBlockedMessage] = useState<string | null>(null);
   const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor),
+  );
 
   const app = apps?.find((candidate) => candidate.id === appId);
 
@@ -115,13 +122,26 @@ export function BoardPage() {
         </div>
       ) : null}
 
-      <DndContext onDragEnd={handleDragEnd}>
-        <div className="flex gap-4 overflow-x-auto pb-4">
+      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+        <div className="flex flex-col gap-4 pb-4 md:flex-row">
           {orderedColumns.map((column) => (
-            <BoardColumnView key={column.id} column={column} appId={appId as string} />
+            <BoardColumnView
+              key={column.id}
+              column={column}
+              appId={appId as string}
+              onOpen={setSelectedCardId}
+            />
           ))}
         </div>
       </DndContext>
+
+      {selectedCardId ? (
+        <CardDetailModal
+          cardId={selectedCardId}
+          appId={appId as string}
+          onClose={() => setSelectedCardId(null)}
+        />
+      ) : null}
 
       {pendingMove ? (
         <BranchLinkPrompt

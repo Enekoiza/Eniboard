@@ -8,6 +8,7 @@ import type {
   LoginRequest,
   LoginResponse,
   MoveCardRequest,
+  UpdateCardRequest,
 } from "../types";
 
 export const authApi = {
@@ -23,4 +24,6 @@ export const appsApi = {
 export const cardsApi = {
   create: (payload: CreateCardRequest) => apiClient.post<Card>("/cards", payload),
   move: (cardId: string, payload: MoveCardRequest) => apiClient.patch<Card>(`/cards/${cardId}/move`, payload),
+  update: (cardId: string, payload: UpdateCardRequest) => apiClient.put<Card>(`/cards/${cardId}`, payload),
+  remove: (cardId: string) => apiClient.delete<void>(`/cards/${cardId}`),
 };
