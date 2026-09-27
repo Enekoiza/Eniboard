@@ -48,7 +48,19 @@ public static class WebhookEndpoints
                 return Results.Ok(new { message = "Payload ignored: not a pull_request event." });
             }
 
-            var payload = ParseMergedPullRequestPayload(rawBody);
+            MergeWebhookPayload? payload;
+            try
+            {
+                payload = ParseMergedPullRequestPayload(rawBody);
+            }
+            catch (JsonException)
+            {
+                return Results.Problem(
+                    title: "Malformed webhook payload",
+                    detail: "The request body is not valid JSON.",
+                    statusCode: StatusCodes.Status400BadRequest);
+            }
+
             if (payload is null)
             {
                 return Results.Ok(new { message = "Payload ignored: pull request was not merged." });
@@ -60,6 +72,7 @@ public static class WebhookEndpoints
         .AllowAnonymous()
         .WithName("GitHubWebhook")
         .Produces(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status400BadRequest)
         .Produces(StatusCodes.Status401Unauthorized);
     }
 
@@ -91,13 +104,13 @@ public static class WebhookEndpoints
         using var document = JsonDocument.Parse(rawBody);
         var root = document.RootElement;
 
-        if (!root.TryGetProperty("action", out var actionElement) ||
-            !string.Equals(actionElement.GetString(), "closed", StringComparison.Ordinal))
+        if (!TryGetString(root, "action", out var action) ||
+            !string.Equals(action, "closed", StringComparison.Ordinal))
         {
             return null;
         }
 
-        if (!root.TryGetProperty("pull_request", out var pullRequestElement))
+        if (!TryGetObject(root, "pull_request", out var pullRequestElement))
         {
             return null;
         }
@@ -108,41 +121,74 @@ public static class WebhookEndpoints
             return null;
         }
 
-        if (!pullRequestElement.TryGetProperty("head", out var headElement) ||
-            !headElement.TryGetProperty("ref", out var headRefElement))
+        if (!TryGetObject(pullRequestElement, "head", out var headElement) ||
+            !TryGetString(headElement, "ref", out var mergedBranch) ||
+            string.IsNullOrEmpty(mergedBranch))
         {
             return null;
         }
 
-        var mergedBranch = headRefElement.GetString();
-        if (string.IsNullOrEmpty(mergedBranch))
+        if (!TryGetObject(pullRequestElement, "base", out var baseElement) ||
+            !TryGetString(baseElement, "ref", out var baseBranch) ||
+            string.IsNullOrEmpty(baseBranch))
         {
             return null;
         }
 
-        if (!pullRequestElement.TryGetProperty("base", out var baseElement) ||
-            !baseElement.TryGetProperty("ref", out var baseRefElement))
+        var repoUrl = string.Empty;
+        var defaultBranch = "main";
+        if (TryGetObject(root, "repository", out var repositoryElement))
         {
-            return null;
+            if (TryGetString(repositoryElement, "html_url", out var htmlUrl))
+            {
+                repoUrl = htmlUrl;
+            }
+
+            if (TryGetString(repositoryElement, "default_branch", out var branch))
+            {
+                defaultBranch = branch;
+            }
         }
-
-        var baseBranch = baseRefElement.GetString();
-        if (string.IsNullOrEmpty(baseBranch))
-        {
-            return null;
-        }
-
-        var repoUrl = root.TryGetProperty("repository", out var repoElement) &&
-                      repoElement.TryGetProperty("html_url", out var htmlUrlElement)
-            ? htmlUrlElement.GetString() ?? string.Empty
-            : string.Empty;
-
-        var defaultBranch = root.TryGetProperty("repository", out var repoElement2) &&
-                             repoElement2.TryGetProperty("default_branch", out var defaultBranchElement)
-            ? defaultBranchElement.GetString() ?? "main"
-            : "main";
 
         return new MergeWebhookPayload(repoUrl, mergedBranch, baseBranch, defaultBranch);
+    }
+
+    /// <summary>
+    /// True only if <paramref name="parent"/> is a JSON object, the property exists, and its
+    /// value is itself an object. Guards against malformed/unexpected-shape webhook bodies
+    /// (e.g. the property being a string or array) throwing <see cref="InvalidOperationException"/>.
+    /// </summary>
+    private static bool TryGetObject(JsonElement parent, string propertyName, out JsonElement value)
+    {
+        if (parent.ValueKind == JsonValueKind.Object &&
+            parent.TryGetProperty(propertyName, out var candidate) &&
+            candidate.ValueKind == JsonValueKind.Object)
+        {
+            value = candidate;
+            return true;
+        }
+
+        value = default;
+        return false;
+    }
+
+    /// <summary>
+    /// True only if <paramref name="parent"/> is a JSON object, the property exists, and its
+    /// value is a JSON string. Guards against malformed/unexpected-shape webhook bodies
+    /// throwing <see cref="InvalidOperationException"/> from <c>GetString()</c>.
+    /// </summary>
+    private static bool TryGetString(JsonElement parent, string propertyName, out string value)
+    {
+        value = string.Empty;
+        if (parent.ValueKind == JsonValueKind.Object &&
+            parent.TryGetProperty(propertyName, out var candidate) &&
+            candidate.ValueKind == JsonValueKind.String)
+        {
+            value = candidate.GetString()!;
+            return true;
+        }
+
+        return false;
     }
 
     private sealed class GitHubWebhookMarker;

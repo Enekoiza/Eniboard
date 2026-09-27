@@ -192,6 +192,57 @@ public class WebhookTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task SignedMalformedJson_ReturnsBadRequest()
+    {
+        var webhookResponse = await SendWebhookAsync("pull_request", "{not json");
+
+        Assert.Equal(HttpStatusCode.BadRequest, webhookResponse.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("""{"action":42}""")]
+    [InlineData("""[]""")]
+    [InlineData("""{"action":"closed","pull_request":"x"}""")]
+    [InlineData("""{"action":"closed","pull_request":{"merged":true,"head":{"ref":1},"base":{"ref":"main"}}}""")]
+    public async Task SignedPayloadWithUnexpectedShape_IsIgnored(string payloadJson)
+    {
+        var webhookResponse = await SendWebhookAsync("pull_request", payloadJson);
+
+        Assert.Equal(HttpStatusCode.OK, webhookResponse.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("https://github.com/owner/repo.git")]
+    [InlineData("https://github.com/owner/repo/")]
+    [InlineData("git@github.com:owner/repo.git")]
+    public async Task MergeWebhook_MatchesRepoUrlVariants(string storedRepoUrl)
+    {
+        var (_, cardId, _, doneId) = await SeedCardInDoingAsync(storedRepoUrl);
+
+        var payloadJson = """
+            {
+              "action": "closed",
+              "pull_request": {
+                "merged": true,
+                "head": { "ref": "feature/ship-it" },
+                "base": { "ref": "main" }
+              },
+              "repository": {
+                "html_url": "https://github.com/owner/repo",
+                "default_branch": "main"
+              }
+            }
+            """;
+
+        var webhookResponse = await SendWebhookAsync("pull_request", payloadJson);
+        Assert.Equal(HttpStatusCode.OK, webhookResponse.StatusCode);
+
+        var client = await TestAuthHelper.CreateAuthenticatedClientAsync(_factory);
+        var updatedCard = await GetCardAsync(client, cardId);
+        Assert.Equal(doneId, updatedCard!.ColumnId);
+    }
+
+    [Fact]
     public async Task MergeWebhook_WithInvalidSignature_ReturnsUnauthorized()
     {
         using var client = _factory.CreateClient();

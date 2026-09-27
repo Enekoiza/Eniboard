@@ -77,7 +77,7 @@ public static class DependencyInjection
 
         services.AddScoped<IAppService, AppService>();
         services.AddScoped<ICardService, CardService>();
-        services.AddHttpClient<IGitIntegrationService, GitIntegrationService>();
+        services.AddScoped<IGitIntegrationService, GitIntegrationService>();
 
         return services;
     }

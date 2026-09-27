@@ -38,4 +38,26 @@ public class AppBoardTests : IAsyncLifetime
         var doingColumn = board.Columns.Single(c => c.Name == "Doing");
         Assert.Equal(1, doingColumn.WipLimit);
     }
+
+    [Fact]
+    public async Task GetApps_ReturnsAppsOrderedByCreation()
+    {
+        var client = await TestAuthHelper.CreateAuthenticatedClientAsync(_factory);
+
+        var firstResponse = await client.PostAsJsonAsync("/apps", new CreateAppRequest("First", "#ff0000", null));
+        firstResponse.EnsureSuccessStatusCode();
+        var first = await firstResponse.Content.ReadFromJsonAsync<AppResponse>();
+
+        var secondResponse = await client.PostAsJsonAsync("/apps", new CreateAppRequest("Second", "#00ff00", null));
+        secondResponse.EnsureSuccessStatusCode();
+        var second = await secondResponse.Content.ReadFromJsonAsync<AppResponse>();
+
+        var listResponse = await client.GetAsync("/apps");
+        listResponse.EnsureSuccessStatusCode();
+        var apps = await listResponse.Content.ReadFromJsonAsync<List<AppResponse>>();
+
+        Assert.NotNull(apps);
+        Assert.Equal([first!.Id, second!.Id], apps!.Select(a => a.Id).ToArray());
+        Assert.Equal([first.BoardId, second.BoardId], apps.Select(a => a.BoardId).ToArray());
+    }
 }

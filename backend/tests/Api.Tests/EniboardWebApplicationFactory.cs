@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -27,7 +29,9 @@ public sealed class EniboardWebApplicationFactory : WebApplicationFactory<Progra
         builder.ConfigureServices(services =>
         {
             _connection.Open();
-            services.AddDbContext<EniboardDbContext>(options => options.UseSqlite(_connection));
+            services.AddDbContext<EniboardDbContext>(options => options
+                .UseSqlite(_connection)
+                .ReplaceService<IModelCustomizer, SqliteDateTimeOffsetModelCustomizer>());
         });
     }
 
@@ -57,6 +61,32 @@ public sealed class EniboardWebApplicationFactory : WebApplicationFactory<Progra
         if (disposing)
         {
             _connection.Dispose();
+        }
+    }
+}
+
+/// <summary>
+/// Test-only model customizer: SQLite (used in place of MySQL for the integration test
+/// suite) cannot translate ordering/comparisons over <see cref="DateTimeOffset"/> columns,
+/// so every such property is stored via <see cref="DateTimeOffsetToBinaryConverter"/>
+/// instead. Production (MySQL) is unaffected — this only applies to the test DbContext.
+/// </summary>
+internal sealed class SqliteDateTimeOffsetModelCustomizer(ModelCustomizerDependencies dependencies)
+    : RelationalModelCustomizer(dependencies)
+{
+    public override void Customize(ModelBuilder modelBuilder, DbContext context)
+    {
+        base.Customize(modelBuilder, context);
+
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            foreach (var property in entityType.GetProperties())
+            {
+                if (property.ClrType == typeof(DateTimeOffset) || property.ClrType == typeof(DateTimeOffset?))
+                {
+                    property.SetValueConverter(new DateTimeOffsetToBinaryConverter());
+                }
+            }
         }
     }
 }

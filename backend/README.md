@@ -53,7 +53,6 @@ Also set:
 
 - `GitHub:WebhookSecret` — shared secret configured on your GitHub webhook (used to verify
   the `X-Hub-Signature-256` header on `POST /webhooks/github`).
-- `GitHub:Token` — optional; only needed to list branches for private repos.
 - `Cors:FrontendOrigin` — the deployed frontend origin (e.g. your Vercel URL).
 - `ForwardedHeaders:KnownProxies` — array of reverse-proxy IP addresses whose
   `X-Forwarded-For`/`X-Forwarded-Proto` headers are trusted.

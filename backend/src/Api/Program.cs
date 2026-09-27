@@ -25,6 +25,15 @@ builder.Services.AddVaultSecrets(builder.Configuration);
 using var bootstrapProvider = builder.Services.BuildServiceProvider();
 var secretsProvider = bootstrapProvider.GetRequiredService<IVaultSecretsProvider>();
 var secrets = await secretsProvider.GetSecretsAsync();
+
+// HS256 requires a key of at least 256 bits; fail fast instead of throwing IDX10720 at first login.
+var jwtKeyBytes = Encoding.UTF8.GetByteCount(secrets.JwtSigningKey);
+if (jwtKeyBytes < 32)
+{
+    throw new InvalidOperationException(
+        $"The JWT signing key must be at least 32 bytes (256 bits) for HS256; the configured key is {jwtKeyBytes} bytes.");
+}
+
 builder.Services.AddSingleton(secrets);
 
 // --- Persistence + Identity --------------------------------------------------------------

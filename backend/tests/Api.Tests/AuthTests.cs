@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using Application.Dtos;
 using Infrastructure.Identity;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
@@ -73,6 +74,26 @@ public class AuthTests : IAsyncLifetime
         var response = await client.PostAsJsonAsync("/auth/login", new LoginRequest("testadmin", "WrongPassword!"));
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Login_WithUnknownUsername_ReturnsUnauthorized()
+    {
+        var client = _factory.CreateClient();
+
+        var response = await client.PostAsJsonAsync("/auth/login", new LoginRequest("no-such-user", "WrongPassword!"));
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public void Startup_WithShortJwtSigningKey_Throws()
+    {
+        using var factory = new EniboardWebApplicationFactory();
+        using var shortKey = factory.WithWebHostBuilder(b => b.UseSetting("Eniboard:JwtSigningKey", "too-short"));
+
+        var ex = Assert.Throws<InvalidOperationException>(() => shortKey.CreateClient());
+        Assert.Contains("32 bytes", ex.Message);
     }
 
     [Fact]

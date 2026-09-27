@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Threading;
 using Application.Dtos;
 using FluentValidation;
 using Infrastructure.Identity;
@@ -12,6 +13,8 @@ namespace Api.Endpoints;
 
 public static class AuthEndpoints
 {
+    private static string? s_dummyPasswordHash;
+
     public static void MapAuthEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/auth").WithTags("Auth");
@@ -29,6 +32,14 @@ public static class AuthEndpoints
             var user = await userManager.FindByNameAsync(request.Username);
             if (user is null)
             {
+                // Perform the same PBKDF2 work as the found-user path would, so an unknown
+                // username can't be distinguished from a wrong password by response timing.
+                var hasher = userManager.PasswordHasher;
+                var dummyHash = LazyInitializer.EnsureInitialized(
+                    ref s_dummyPasswordHash,
+                    () => hasher.HashPassword(new ApplicationUser(), Guid.NewGuid().ToString("N")));
+                hasher.VerifyHashedPassword(new ApplicationUser(), dummyHash, request.Password);
+
                 return Results.Problem(
                     title: "Invalid credentials",
                     detail: "Username or password is incorrect.",
