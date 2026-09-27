@@ -41,7 +41,7 @@ export function CardItem({ card }: CardItemProps) {
       }`}
     >
       <p className="text-sm font-medium text-white">{card.title}</p>
-      {card.description ? <p className="line-clamp-2 text-xs text-gray-400">{card.description}</p> : null}
+      {card.description ? <p className="line-clamp-2 text-xs text-gray-300">{card.description}</p> : null}
       <div className="flex flex-wrap items-center gap-2">
         <span className="rounded-full bg-gray-800 px-2 py-0.5 text-[11px] text-gray-300">
           {TYPE_LABELS[card.cardType]}

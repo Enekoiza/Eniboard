@@ -15,7 +15,7 @@ export function BoardColumnView({ column, appId }: BoardColumnViewProps) {
 
   return (
     <div className="flex w-72 shrink-0 flex-col gap-3">
-      <div className="flex items-center justify-between px-1">
+      <div className="flex items-center justify-between rounded-lg bg-gray-950/70 px-2 py-1.5">
         <h2 className="text-sm font-semibold text-gray-200">{column.name}</h2>
         <span
           className={`rounded-full px-2 py-0.5 text-xs ${
@@ -29,22 +29,22 @@ export function BoardColumnView({ column, appId }: BoardColumnViewProps) {
 
       <div
         ref={setNodeRef}
-        className={`flex min-h-[120px] flex-1 flex-col gap-2 rounded-card border border-dashed bg-gray-950/40 p-2 backdrop-blur-sm transition-colors ${
-          isOver ? "border-brand bg-brand/10" : "border-white/10"
+        className={`flex min-h-[120px] flex-1 flex-col gap-2 rounded-card border border-dashed p-2 transition-colors ${
+          isOver ? "border-white/70 bg-gray-950/80" : "border-white/10 bg-gray-950/60"
         }`}
       >
         {column.cards.map((card) => (
           <CardItem key={card.id} card={card} />
         ))}
         {column.cards.length === 0 ? (
-          <p className="px-2 py-4 text-center text-xs text-gray-600">Drop cards here</p>
+          <p className="px-2 py-4 text-center text-xs text-gray-300">Drop cards here</p>
         ) : null}
       </div>
 
       <button
         type="button"
         onClick={() => openNewCardModal({ appId, columnId: column.id })}
-        className="rounded-lg border border-gray-800 px-2 py-1.5 text-xs text-gray-400 hover:border-brand hover:text-white"
+        className="rounded-lg border border-white/10 bg-gray-950/70 px-2 py-1.5 text-xs text-gray-300 hover:border-white/40 hover:text-white"
       >
         + Add card
       </button>
