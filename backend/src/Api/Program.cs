@@ -5,9 +5,9 @@ using Application.Validators;
 using FluentValidation;
 using Infrastructure;
 using Infrastructure.Identity;
+using Infrastructure.Migrations;
 using Infrastructure.Vault;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -80,15 +80,15 @@ builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
-// --- Startup: apply migrations + seed user ----------------------------------------------
+// --- Startup: apply migrations (DbUp) + seed user ---------------------------------------
 // Skipped under the "Testing" environment: WebApplicationFactory-based integration tests
 // swap in a SQLite DbContext via ConfigureTestServices and drive schema creation + seeding
-// themselves (Pomelo's MySQL migrations are not guaranteed to apply cleanly to SQLite).
+// themselves (DbUp only targets MySQL here).
 if (!app.Environment.IsEnvironment("Testing"))
 {
+    DatabaseMigrator.Migrate(secrets.DbConnectionString);
+
     using var scope = app.Services.CreateScope();
-    var dbContext = scope.ServiceProvider.GetRequiredService<Infrastructure.Data.EniboardDbContext>();
-    await dbContext.Database.MigrateAsync();
     await SeedUserInitializer.EnsureSeedUserAsync(scope.ServiceProvider);
 }
 

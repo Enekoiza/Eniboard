@@ -8,10 +8,13 @@ your own software projects) gets a board, and cards represent pending changes to
 - **.NET 10** minimal APIs, nullable reference types enabled everywhere.
 - **EF Core 9** + **Pomelo.EntityFrameworkCore.MySql 9.0.0** for MySQL persistence (see
   [Package version note](#package-version-note) below).
+- **DbUp** (`dbup-mysql`) for schema migrations — plain SQL scripts applied on startup,
+  independent of EF Core's own migration tooling.
 - **ASP.NET Core Identity** + **JWT bearer auth** (single seeded user).
 - **FluentValidation** for request validation.
 - **xUnit** + `WebApplicationFactory<Program>` (SQLite in-memory) for integration tests.
-- Optional **HashiCorp Vault** integration for secrets in production.
+- **HashiCorp Vault** for secrets — this app targets a single real (production) environment,
+  always backed by a self-hosted Vault instance; see [Configure secrets](#2-configure-secrets).
 
 ## Solution layout
 
@@ -22,7 +25,7 @@ backend/
 │   ├── Api/                   # minimal API endpoints, Program.cs, appsettings
 │   ├── Application/           # services, DTOs, FluentValidation validators, exceptions
 │   ├── Domain/                # entities + enums, no external dependencies
-│   └── Infrastructure/        # EF Core DbContext + migrations, Identity, Vault client
+│   └── Infrastructure/        # EF Core DbContext, DbUp SQL migrations, Identity, Vault client
 └── tests/
     └── Api.Tests/             # xUnit integration tests (WebApplicationFactory + SQLite)
 ```
@@ -37,49 +40,45 @@ backend/
 
 ### 2. Configure secrets
 
-By default (`UseVault: false` in `appsettings.Development.json`), secrets are read directly
-from configuration instead of Vault. Set them via user secrets or environment variables
-rather than committing real values:
-
-```bash
-cd src/Api
-dotnet user-secrets init
-dotnet user-secrets set "Eniboard:DbConnectionString" "server=localhost;port=3306;database=eniboard_dev;user=eniboard;password=<your-password>"
-dotnet user-secrets set "Eniboard:JwtSigningKey" "<a long random string, 32+ bytes>"
-dotnet user-secrets set "Eniboard:SeedUsername" "admin"
-dotnet user-secrets set "Eniboard:SeedPassword" "<a strong password>"
-```
-
-In production, set `UseVault: true` (or `UseVault=true` env var) and instead provide:
+This app has a single real environment (`appsettings.json`), always backed by Vault
+(`UseVault: true`). Provide:
 
 - `VAULT_ADDR` — base address of your Vault server.
 - `VAULT_TOKEN` — a token with read access to the configured KV path.
 - `Vault:SecretPath` (optional, defaults to `v1/secret/data/eniboard`) — must contain the
   keys `db-connection-string`, `jwt-signing-key`, `seed-username`, `seed-password`.
 
-Also set, in either mode:
+Also set:
 
 - `GitHub:WebhookSecret` — shared secret configured on your GitHub webhook (used to verify
   the `X-Hub-Signature-256` header on `POST /webhooks/github`).
 - `GitHub:Token` — optional; only needed to list branches for private repos.
 - `Cors:FrontendOrigin` — the deployed frontend origin (e.g. your Vercel URL).
 
+For an ad-hoc local run without a real Vault reachable, set `UseVault=false` and provide the
+same values directly via user secrets or environment variables instead:
+
+```bash
+cd src/Api
+dotnet user-secrets init
+dotnet user-secrets set "UseVault" "false"
+dotnet user-secrets set "Eniboard:DbConnectionString" "server=localhost;port=3306;database=eniboard;user=eniboard;password=<your-password>"
+dotnet user-secrets set "Eniboard:JwtSigningKey" "<a long random string, 32+ bytes>"
+dotnet user-secrets set "Eniboard:SeedUsername" "admin"
+dotnet user-secrets set "Eniboard:SeedPassword" "<a strong password>"
+```
+
 ### 3. Apply migrations
 
-Migrations are applied automatically on startup (`dbContext.Database.MigrateAsync()` in
-`Program.cs`), so simply running the app against a reachable MySQL server is enough. To
-apply them manually instead:
+Schema migrations are plain SQL scripts under `src/Infrastructure/Migrations/Scripts/`
+(`NNNN_description.sql`, applied in filename order), run automatically on startup via
+[DbUp](https://dbup.readthedocs.io/) (`DatabaseMigrator.Migrate(...)` in `Program.cs`). DbUp
+tracks what has already run in its own `SchemaVersions` table in the target database — no EF
+Core migration tooling is involved. Simply running the app against a reachable MySQL server
+is enough; there is no separate "apply migrations" step to run by hand.
 
-```bash
-dotnet tool install --global dotnet-ef   # if you don't already have it
-dotnet ef database update --project src/Infrastructure --startup-project src/Api
-```
-
-To add a new migration after changing an entity:
-
-```bash
-dotnet ef migrations add <Name> --project src/Infrastructure --startup-project src/Api --output-dir Data/Migrations
-```
+To change the schema, add a new script (e.g. `0002_add_something.sql`) to that folder — never
+edit an already-applied script, since DbUp tracks scripts by name and content hash.
 
 ### 4. Run
 
@@ -158,8 +157,12 @@ net8.0/net9.0-targeted libraries) and should be revisited once Pomelo ships an E
   integration tests can register their own SQLite `DbContextOptions<EniboardDbContext>`
   cleanly instead of the two competing to configure the same context.
 - **Migrate + seed skipped in `"Testing"` environment**: `Program.cs` skips
-  `dbContext.Database.MigrateAsync()` and `SeedUserInitializer` when
-  `IWebHostEnvironment.EnvironmentName == "Testing"`, since Pomelo-generated MySQL
-  migrations aren't guaranteed to apply cleanly against SQLite. The test `WebApplicationFactory`
-  performs the equivalent setup itself (`EnsureCreatedAsync` + seeding) against its SQLite
-  connection.
+  `DatabaseMigrator.Migrate(...)` and `SeedUserInitializer` when
+  `IWebHostEnvironment.EnvironmentName == "Testing"`, since DbUp only targets MySQL here. The
+  test `WebApplicationFactory` performs the equivalent setup itself (`EnsureCreatedAsync` +
+  seeding) against its SQLite connection.
+- **DbUp instead of EF Core Migrations**: schema changes are hand-written SQL scripts run by
+  DbUp, not `dotnet ef migrations`. This trades away EF's auto-generated migrations for a
+  single, explicit source of truth for the schema — chosen because this is a self-hosted,
+  single-user, single-environment app going straight to production, where the up-front
+  simplicity of one deploy path matters more than migration codegen.

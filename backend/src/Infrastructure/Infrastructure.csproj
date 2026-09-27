@@ -6,12 +6,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="dbup-mysql" Version="6.1.0" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
     <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.0" />
     <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="9.0.0" />
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="9.0.0" />
@@ -27,6 +24,11 @@
     <!-- Needed for the full Microsoft.AspNetCore.Identity.AddIdentity(...) extension
          (SignInManager, etc.), which ships in the shared framework rather than a NuGet package. -->
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- DbUp scans these at runtime (WithScriptsEmbeddedInAssembly) to apply schema changes in order. -->
+    <EmbeddedResource Include="Migrations\Scripts\*.sql" />
   </ItemGroup>
 
 </Project>
