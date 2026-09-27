@@ -8,7 +8,7 @@ namespace Infrastructure.Identity;
 
 /// <summary>
 /// Ensures exactly one user exists on startup, created from the seed username/password
-/// read via <see cref="IVaultSecretsProvider"/>. Idempotent: if any user already exists
+/// read via <see cref="EniboardSecrets"/>. Idempotent: if any user already exists
 /// (in particular, the seed user itself), nothing happens — this never touches an
 /// existing user's password.
 /// </summary>
@@ -17,7 +17,7 @@ public static class SeedUserInitializer
     public static async Task EnsureSeedUserAsync(IServiceProvider services, CancellationToken cancellationToken = default)
     {
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
-        var vault = services.GetRequiredService<IVaultSecretsProvider>();
+        var secrets = services.GetRequiredService<EniboardSecrets>();
         var logger = services.GetRequiredService<ILoggerFactory>().CreateLogger("SeedUserInitializer");
 
         var anyUserExists = await userManager.Users.AnyAsync(cancellationToken);
@@ -26,8 +26,6 @@ public static class SeedUserInitializer
             logger.LogInformation("At least one user already exists; skipping seed user creation.");
             return;
         }
-
-        var secrets = await vault.GetSecretsAsync(cancellationToken);
 
         var user = new ApplicationUser
         {

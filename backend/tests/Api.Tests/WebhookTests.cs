@@ -130,6 +130,37 @@ public class WebhookTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task MergeWebhook_OnlyMovesCardsFromMatchingRepository()
+    {
+        var (clientA, cardIdA, _, doneIdA) = await SeedCardInDoingAsync("https://github.com/owner/repo");
+        var (clientB, cardIdB, doingIdB, _) = await SeedCardInDoingAsync("https://github.com/other/repo");
+
+        var payloadJson = """
+            {
+              "action": "closed",
+              "pull_request": {
+                "merged": true,
+                "head": { "ref": "feature/ship-it" },
+                "base": { "ref": "main" }
+              },
+              "repository": {
+                "html_url": "https://github.com/owner/repo",
+                "default_branch": "main"
+              }
+            }
+            """;
+
+        var webhookResponse = await SendWebhookAsync("pull_request", payloadJson);
+        Assert.Equal(HttpStatusCode.OK, webhookResponse.StatusCode);
+
+        var updatedCardA = await GetCardAsync(clientA, cardIdA);
+        Assert.Equal(doneIdA, updatedCardA!.ColumnId);
+
+        var updatedCardB = await GetCardAsync(clientB, cardIdB);
+        Assert.Equal(doingIdB, updatedCardB!.ColumnId);
+    }
+
+    [Fact]
     public async Task MergeWebhook_WithInvalidSignature_ReturnsUnauthorized()
     {
         using var client = _factory.CreateClient();
@@ -148,11 +179,11 @@ public class WebhookTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
-    private async Task<(HttpClient Client, Guid CardId, Guid DoingId, Guid DoneId)> SeedCardInDoingAsync()
+    private async Task<(HttpClient Client, Guid CardId, Guid DoingId, Guid DoneId)> SeedCardInDoingAsync(string repoUrl = "https://github.com/owner/repo")
     {
         var client = await TestAuthHelper.CreateAuthenticatedClientAsync(_factory);
 
-        var appResponse = await client.PostAsJsonAsync("/apps", new CreateAppRequest("Webhook App", "#123456", "https://github.com/owner/repo"));
+        var appResponse = await client.PostAsJsonAsync("/apps", new CreateAppRequest("Webhook App", "#123456", repoUrl));
         var app = await appResponse.Content.ReadFromJsonAsync<AppResponse>();
 
         var boardResponse = await client.GetAsync($"/apps/{app!.Id}/board");

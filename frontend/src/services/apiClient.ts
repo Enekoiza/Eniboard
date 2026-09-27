@@ -49,6 +49,11 @@ async function request<TResponse>(path: string, options: RequestOptions = {}): P
     } catch {
       problem = null;
     }
+
+    if (response.status === 401 && token && path !== "/auth/login") {
+      useAuthStore.getState().logout();
+    }
+
     const message = problem?.detail ?? problem?.title ?? `Request failed with status ${response.status}`;
     throw new ApiError(response.status, problem, message);
   }

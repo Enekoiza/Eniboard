@@ -19,7 +19,7 @@ public static class AuthEndpoints
             LoginRequest request,
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
-            IVaultSecretsProvider vault,
+            EniboardSecrets secrets,
             CancellationToken cancellationToken) =>
         {
             var user = await userManager.FindByNameAsync(request.Username);
@@ -40,7 +40,6 @@ public static class AuthEndpoints
                     statusCode: StatusCodes.Status401Unauthorized);
             }
 
-            var secrets = await vault.GetSecretsAsync(cancellationToken);
             var expiresAt = DateTimeOffset.UtcNow.AddHours(12);
 
             var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secrets.JwtSigningKey));

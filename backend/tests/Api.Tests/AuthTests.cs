@@ -1,6 +1,12 @@
 using System.Net;
 using System.Net.Http.Json;
 using Application.Dtos;
+using Infrastructure.Identity;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace Api.Tests;
 
@@ -40,7 +46,30 @@ public class AuthTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Login_AfterFiveFailedAttempts_LocksOutEvenWithCorrectPassword()
+    public async Task Login_AfterMaxFailedAttempts_LocksOutEvenWithCorrectPassword()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var maxFailedAccessAttempts = scope.ServiceProvider.GetRequiredService<IOptions<IdentityOptions>>().Value.Lockout.MaxFailedAccessAttempts;
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var user = await userManager.FindByNameAsync("testadmin");
+        Assert.NotNull(user);
+
+        for (var i = 0; i < maxFailedAccessAttempts - 1; i++)
+        {
+            await userManager.AccessFailedAsync(user!);
+        }
+
+        var client = _factory.CreateClient();
+
+        var wrongPasswordResponse = await client.PostAsJsonAsync("/auth/login", new LoginRequest("testadmin", "WrongPassword!"));
+        Assert.Equal(HttpStatusCode.Unauthorized, wrongPasswordResponse.StatusCode);
+
+        var correctPasswordResponse = await client.PostAsJsonAsync("/auth/login", new LoginRequest("testadmin", "TestPassword123!"));
+        Assert.Equal(HttpStatusCode.Unauthorized, correctPasswordResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task Login_AfterFiveFailedAttempts_DoesNotLockOutAccount()
     {
         var client = _factory.CreateClient();
 
@@ -50,8 +79,11 @@ public class AuthTests : IAsyncLifetime
             Assert.Equal(HttpStatusCode.Unauthorized, failedResponse.StatusCode);
         }
 
-        var correctPasswordResponse = await client.PostAsJsonAsync("/auth/login", new LoginRequest("testadmin", "TestPassword123!"));
-        Assert.Equal(HttpStatusCode.Unauthorized, correctPasswordResponse.StatusCode);
+        using var scope = _factory.Services.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var user = await userManager.FindByNameAsync("testadmin");
+        Assert.NotNull(user);
+        Assert.False(await userManager.IsLockedOutAsync(user!));
     }
 
     [Fact]
@@ -59,7 +91,7 @@ public class AuthTests : IAsyncLifetime
     {
         var client = _factory.CreateClient();
 
-        for (var i = 0; i < 10; i++)
+        for (var i = 0; i < 5; i++)
         {
             var response = await client.PostAsJsonAsync("/auth/login", new LoginRequest("testadmin", "WrongPassword!"));
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -67,5 +99,60 @@ public class AuthTests : IAsyncLifetime
 
         var throttledResponse = await client.PostAsJsonAsync("/auth/login", new LoginRequest("testadmin", "WrongPassword!"));
         Assert.Equal(HttpStatusCode.TooManyRequests, throttledResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task Login_RateLimit_IsPerForwardedClientIp()
+    {
+        for (var i = 0; i < 5; i++)
+        {
+            var response = await SendLoginWithForwardedForAsync("203.0.113.1");
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        }
+
+        var throttledResponse = await SendLoginWithForwardedForAsync("203.0.113.1");
+        Assert.Equal(HttpStatusCode.TooManyRequests, throttledResponse.StatusCode);
+
+        var otherClientResponse = await SendLoginWithForwardedForAsync("203.0.113.2");
+        Assert.Equal(HttpStatusCode.Unauthorized, otherClientResponse.StatusCode);
+    }
+
+    private async Task<HttpResponseMessage> SendLoginWithForwardedForAsync(string forwardedFor)
+    {
+        var payload = JsonContent.Create(new LoginRequest("testadmin", "WrongPassword!"));
+        var body = await payload.ReadAsStringAsync();
+
+        var context = await _factory.Server.SendAsync(ctx =>
+        {
+            // The forwarded-headers middleware ignores requests with a null remote IP, which
+            // is otherwise always the case on the in-process TestServer.
+            ctx.Connection.RemoteIpAddress = IPAddress.Loopback;
+            ctx.Request.Scheme = "http";
+            ctx.Request.Host = new HostString("localhost");
+            ctx.Request.Method = "POST";
+            ctx.Request.Path = "/auth/login";
+            ctx.Request.Headers["X-Forwarded-For"] = forwardedFor;
+            ctx.Request.ContentType = "application/json";
+
+            var bytes = System.Text.Encoding.UTF8.GetBytes(body);
+            ctx.Request.Body = new MemoryStream(bytes);
+            ctx.Request.ContentLength = bytes.Length;
+
+            // TestServer's HttpContextBuilder computes body-detection up front, before this
+            // callback runs, so it doesn't see the body assigned above; without this the JSON
+            // body binder treats the request as bodyless and short-circuits with a bare 400.
+            ctx.Features.Set<IHttpRequestBodyDetectionFeature>(new AlwaysHasBodyFeature());
+        });
+
+        var responseBody = await new StreamReader(context.Response.Body).ReadToEndAsync();
+        return new HttpResponseMessage((HttpStatusCode)context.Response.StatusCode)
+        {
+            Content = new StringContent(responseBody),
+        };
+    }
+
+    private sealed class AlwaysHasBodyFeature : IHttpRequestBodyDetectionFeature
+    {
+        public bool CanHaveBody => true;
     }
 }

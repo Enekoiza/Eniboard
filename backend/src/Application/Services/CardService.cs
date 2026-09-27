@@ -42,7 +42,7 @@ public class CardService(IEniboardDbContext db) : ICardService
             BoardId = request.BoardId,
             ColumnId = request.ColumnId,
             Title = request.Title,
-            Description = request.Description,
+            Description = request.Description ?? string.Empty,
             CardType = request.CardType,
             Priority = request.Priority,
             LinkedBranch = string.Equals(column.Name, BoardColumn.DoingName, StringComparison.OrdinalIgnoreCase)
@@ -67,7 +67,7 @@ public class CardService(IEniboardDbContext db) : ICardService
         var card = await FindCardAsync(cardId, cancellationToken);
 
         card.Title = request.Title;
-        card.Description = request.Description;
+        card.Description = request.Description ?? string.Empty;
         card.CardType = request.CardType;
         card.Priority = request.Priority;
         card.UpdatedAt = DateTimeOffset.UtcNow;

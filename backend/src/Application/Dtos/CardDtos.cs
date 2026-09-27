@@ -6,14 +6,14 @@ public sealed record CreateCardRequest(
     Guid BoardId,
     Guid ColumnId,
     string Title,
-    string Description,
+    string? Description,
     CardType CardType,
     Priority Priority,
     string? LinkedBranch);
 
 public sealed record UpdateCardRequest(
     string Title,
-    string Description,
+    string? Description,
     CardType CardType,
     Priority Priority);
 

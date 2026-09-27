@@ -57,8 +57,14 @@ public static class DependencyInjection
                 // don't force additional runtime policy beyond the defaults.
                 options.User.RequireUniqueEmail = false;
 
+                // The per-IP login rate limiter (5 attempts / 15 min, see Program.cs) is the
+                // main defence against brute-forcing the single seeded account. This lockout
+                // threshold is only a backstop against distributed guessing (many source IPs)
+                // and is intentionally set well above the rate limiter's budget so a single
+                // legitimate user retrying a mistyped password from one IP never gets locked
+                // out of the only account in the system.
                 options.Lockout.AllowedForNewUsers = true;
-                options.Lockout.MaxFailedAccessAttempts = 5;
+                options.Lockout.MaxFailedAccessAttempts = 50;
                 options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
             })
             .AddEntityFrameworkStores<EniboardDbContext>()

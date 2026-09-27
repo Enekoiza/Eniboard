@@ -93,31 +93,72 @@ public partial class GitIntegrationService(
             return;
         }
 
-        var card = await db.Cards
-            .FirstOrDefaultAsync(c => c.LinkedBranch == payload.MergedBranch, cancellationToken);
-
-        if (card is null)
+        var repoKey = NormalizeRepoKey(payload.RepoUrl);
+        if (repoKey is null)
         {
-            logger.LogInformation("Merge webhook for branch {Branch} did not match any linked card.", payload.MergedBranch);
+            logger.LogInformation("Merge webhook has no recognizable repository URL; ignoring.");
             return;
         }
 
-        var doneColumn = await db.BoardColumns
-            .FirstOrDefaultAsync(c => c.BoardId == card.BoardId && c.Name == BoardColumn.DoneName, cancellationToken);
+        var candidates = await db.Cards
+            .Include(c => c.Column)
+            .Include(c => c.Board)
+            .ThenInclude(b => b!.App)
+            .Where(c => c.LinkedBranch == payload.MergedBranch && c.Column!.Name != BoardColumn.DoneName)
+            .ToListAsync(cancellationToken);
 
-        if (doneColumn is null)
+        var matchingCards = candidates
+            .Where(c => NormalizeRepoKey(c.Board?.App?.RepoUrl) == repoKey)
+            .ToList();
+
+        if (matchingCards.Count == 0)
         {
-            logger.LogWarning("Board {BoardId} has no '{DoneColumn}' column; cannot auto-move card {CardId}.", card.BoardId, BoardColumn.DoneName, card.Id);
+            logger.LogInformation(
+                "Merge webhook for branch {Branch} in repository {Repo} did not match any linked card.",
+                payload.MergedBranch,
+                repoKey);
             return;
         }
 
-        card.ColumnId = doneColumn.Id;
-        card.UpdatedAt = DateTimeOffset.UtcNow;
+        foreach (var card in matchingCards)
+        {
+            var doneColumn = await db.BoardColumns
+                .FirstOrDefaultAsync(c => c.BoardId == card.BoardId && c.Name == BoardColumn.DoneName, cancellationToken);
+
+            if (doneColumn is null)
+            {
+                logger.LogWarning("Board {BoardId} has no '{DoneColumn}' column; cannot auto-move card {CardId}.", card.BoardId, BoardColumn.DoneName, card.Id);
+                continue;
+            }
+
+            card.ColumnId = doneColumn.Id;
+            card.UpdatedAt = DateTimeOffset.UtcNow;
+        }
+
         await db.SaveChangesAsync(cancellationToken);
     }
 
     [GeneratedRegex(@"github\.com[:/](?<owner>[^/\s]+)/(?<repo>[^/\s]+?)(?:\.git)?/?$", RegexOptions.IgnoreCase)]
     private static partial Regex GitHubRepoRegex();
+
+    private static string? NormalizeRepoKey(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            return null;
+        }
+
+        var match = GitHubRepoRegex().Match(url);
+        if (!match.Success)
+        {
+            return null;
+        }
+
+        var owner = match.Groups["owner"].Value;
+        var repo = match.Groups["repo"].Value.TrimEnd('/').Replace(".git", string.Empty, StringComparison.OrdinalIgnoreCase);
+
+        return $"{owner}/{repo}".ToLowerInvariant();
+    }
 
     private sealed record GitHubBranchDto(string Name, bool Protected);
 }

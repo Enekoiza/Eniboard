@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -11,6 +12,7 @@ using Infrastructure.Identity;
 using Infrastructure.Migrations;
 using Infrastructure.Vault;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 
@@ -22,6 +24,7 @@ builder.Services.AddVaultSecrets(builder.Configuration);
 using var bootstrapProvider = builder.Services.BuildServiceProvider();
 var secretsProvider = bootstrapProvider.GetRequiredService<IVaultSecretsProvider>();
 var secrets = await secretsProvider.GetSecretsAsync();
+builder.Services.AddSingleton(secrets);
 
 // --- Persistence + Identity --------------------------------------------------------------
 // The MySQL DbContext registration is skipped under the "Testing" environment: integration
@@ -83,13 +86,23 @@ builder.Services.AddProblemDetails();
 builder.Services.ConfigureHttpJsonOptions(o =>
     o.SerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)));
 
+// --- Forwarded headers (trust X-Forwarded-For/-Proto from the reverse proxy) -------------
+builder.Services.Configure<ForwardedHeadersOptions>(o =>
+{
+    o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    foreach (var proxy in builder.Configuration.GetSection("ForwardedHeaders:KnownProxies").Get<string[]>() ?? [])
+    {
+        o.KnownProxies.Add(IPAddress.Parse(proxy));
+    }
+});
+
 // --- Rate limiting (login brute-force protection) ---------------------------------------
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
     options.AddPolicy("login", httpContext => RateLimitPartition.GetFixedWindowLimiter(
         httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-        _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1), QueueLimit = 0, AutoReplenishment = true }));
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 5, Window = TimeSpan.FromMinutes(15), QueueLimit = 0, AutoReplenishment = true }));
 });
 
 builder.Services.AddOpenApi();
@@ -107,6 +120,11 @@ if (!app.Environment.IsEnvironment("Testing"))
     using var scope = app.Services.CreateScope();
     await SeedUserInitializer.EnsureSeedUserAsync(scope.ServiceProvider);
 }
+
+// RemoteIpAddress is only null on the in-process TestServer used by integration tests;
+// Kestrel always populates it, so the "unknown" fallback in the rate limiter above is
+// effectively test-only.
+app.UseForwardedHeaders();
 
 app.UseExceptionHandler(_ => { });
 
