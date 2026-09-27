@@ -117,6 +117,22 @@ public class AuthTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.Unauthorized, otherClientResponse.StatusCode);
     }
 
+    [Fact]
+    public async Task Login_RateLimit_GroupsIpv6ClientsBy64Prefix()
+    {
+        for (var i = 0; i < 5; i++)
+        {
+            var response = await SendLoginWithForwardedForAsync("2001:db8:1:1::1");
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        }
+
+        var sameSubnetResponse = await SendLoginWithForwardedForAsync("2001:db8:1:1::2");
+        Assert.Equal(HttpStatusCode.TooManyRequests, sameSubnetResponse.StatusCode);
+
+        var differentSubnetResponse = await SendLoginWithForwardedForAsync("2001:db8:1:2::1");
+        Assert.Equal(HttpStatusCode.Unauthorized, differentSubnetResponse.StatusCode);
+    }
+
     private async Task<HttpResponseMessage> SendLoginWithForwardedForAsync(string forwardedFor)
     {
         var payload = JsonContent.Create(new LoginRequest("testadmin", "WrongPassword!"));

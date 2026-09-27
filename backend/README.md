@@ -55,6 +55,15 @@ Also set:
   the `X-Hub-Signature-256` header on `POST /webhooks/github`).
 - `GitHub:Token` — optional; only needed to list branches for private repos.
 - `Cors:FrontendOrigin` — the deployed frontend origin (e.g. your Vercel URL).
+- `ForwardedHeaders:KnownProxies` — array of reverse-proxy IP addresses whose
+  `X-Forwarded-For`/`X-Forwarded-Proto` headers are trusted.
+- `ForwardedHeaders:KnownNetworks` — array of CIDR ranges for the same purpose, e.g.
+  `["172.17.0.0/16"]` for a Docker bridge or the load balancer's subnet.
+
+Loopback is trusted by default; if the proxy reaches the app from any other address and
+isn't listed, the forwarded client IP is ignored and all clients share one login rate-limit
+bucket (5 attempts per 15 minutes in total). Also note the login limiter keys IPv4 clients by
+address and IPv6 clients by their /64 prefix.
 
 For an ad-hoc local run without a real Vault reachable, set `UseVault=false` and provide the
 same values directly via user secrets or environment variables instead:

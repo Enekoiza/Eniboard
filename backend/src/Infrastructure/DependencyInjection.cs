@@ -57,7 +57,7 @@ public static class DependencyInjection
                 // don't force additional runtime policy beyond the defaults.
                 options.User.RequireUniqueEmail = false;
 
-                // The per-IP login rate limiter (5 attempts / 15 min, see Program.cs) is the
+                // The per-client login rate limiter (per IPv4 address / per IPv6 /64) (5 attempts / 15 min, see Program.cs) is the
                 // main defence against brute-forcing the single seeded account. This lockout
                 // threshold is only a backstop against distributed guessing (many source IPs)
                 // and is intentionally set well above the rate limiter's budget so a single

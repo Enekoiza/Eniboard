@@ -161,6 +161,37 @@ public class WebhookTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task MergeWebhook_MatchesGithubIoRepository()
+    {
+        var (clientA, cardIdA, _, doneIdA) = await SeedCardInDoingAsync("https://github.com/owner/owner.github.io");
+        var (clientB, cardIdB, doingIdB, _) = await SeedCardInDoingAsync("https://github.com/owner/ownerhub.io");
+
+        var payloadJson = """
+            {
+              "action": "closed",
+              "pull_request": {
+                "merged": true,
+                "head": { "ref": "feature/ship-it" },
+                "base": { "ref": "main" }
+              },
+              "repository": {
+                "html_url": "https://github.com/owner/owner.github.io",
+                "default_branch": "main"
+              }
+            }
+            """;
+
+        var webhookResponse = await SendWebhookAsync("pull_request", payloadJson);
+        Assert.Equal(HttpStatusCode.OK, webhookResponse.StatusCode);
+
+        var updatedCardA = await GetCardAsync(clientA, cardIdA);
+        Assert.Equal(doneIdA, updatedCardA!.ColumnId);
+
+        var updatedCardB = await GetCardAsync(clientB, cardIdB);
+        Assert.Equal(doingIdB, updatedCardB!.ColumnId);
+    }
+
+    [Fact]
     public async Task MergeWebhook_WithInvalidSignature_ReturnsUnauthorized()
     {
         using var client = _factory.CreateClient();

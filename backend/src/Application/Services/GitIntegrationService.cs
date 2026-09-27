@@ -30,14 +30,10 @@ public partial class GitIntegrationService(
 {
     public async Task<ListBranchesResult> ListBranchesAsync(string repoUrl, CancellationToken cancellationToken = default)
     {
-        var match = GitHubRepoRegex().Match(repoUrl);
-        if (!match.Success)
+        if (!TryParseRepo(repoUrl, out var owner, out var repo))
         {
             return new ListBranchesResult(false, $"'{repoUrl}' is not a recognizable github.com repository URL.", []);
         }
-
-        var owner = match.Groups["owner"].Value;
-        var repo = match.Groups["repo"].Value.TrimEnd('/').Replace(".git", string.Empty, StringComparison.OrdinalIgnoreCase);
 
         var token = configuration["GitHub:Token"];
 
@@ -141,23 +137,28 @@ public partial class GitIntegrationService(
     [GeneratedRegex(@"github\.com[:/](?<owner>[^/\s]+)/(?<repo>[^/\s]+?)(?:\.git)?/?$", RegexOptions.IgnoreCase)]
     private static partial Regex GitHubRepoRegex();
 
-    private static string? NormalizeRepoKey(string? url)
+    private static bool TryParseRepo(string? url, out string owner, out string repo)
     {
+        owner = repo = string.Empty;
         if (string.IsNullOrWhiteSpace(url))
         {
-            return null;
+            return false;
         }
 
         var match = GitHubRepoRegex().Match(url);
         if (!match.Success)
         {
-            return null;
+            return false;
         }
 
-        var owner = match.Groups["owner"].Value;
-        var repo = match.Groups["repo"].Value.TrimEnd('/').Replace(".git", string.Empty, StringComparison.OrdinalIgnoreCase);
+        owner = match.Groups["owner"].Value;
+        repo = match.Groups["repo"].Value;
+        return true;
+    }
 
-        return $"{owner}/{repo}".ToLowerInvariant();
+    private static string? NormalizeRepoKey(string? url)
+    {
+        return TryParseRepo(url, out var owner, out var repo) ? $"{owner}/{repo}".ToLowerInvariant() : null;
     }
 
     private sealed record GitHubBranchDto(string Name, bool Protected);
