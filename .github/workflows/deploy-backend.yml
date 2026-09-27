@@ -45,6 +45,7 @@ jobs:
       - name: Copy build to VPS
         run: >
           rsync -avz --delete --omit-dir-times --no-perms
+          --exclude=".aspnet/"
           "${{ runner.temp }}/publish/"
           "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_DEPLOY_PATH }}/"
 
