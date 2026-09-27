@@ -68,4 +68,29 @@ public class ProblemDetailsExceptionHandlerTests
         Assert.Equal(StatusCodes.Status404NotFound, httpContext.Response.StatusCode);
         Assert.Equal(exception.Message, document.RootElement.GetProperty("detail").GetString());
     }
+
+    [Fact]
+    public async Task TryHandleAsync_WithBadHttpRequestException_ReturnsBadRequestWithExceptionMessage()
+    {
+        var httpContext = CreateHttpContext();
+        var exception = new BadHttpRequestException("Failed to read parameter from the request body as JSON.", StatusCodes.Status400BadRequest);
+
+        using var document = await InvokeAsync(exception, httpContext);
+
+        Assert.Equal(StatusCodes.Status400BadRequest, httpContext.Response.StatusCode);
+        Assert.Equal("Bad request", document.RootElement.GetProperty("title").GetString());
+        Assert.Equal(exception.Message, document.RootElement.GetProperty("detail").GetString());
+    }
+
+    [Fact]
+    public async Task TryHandleAsync_WithBadHttpRequestException_PreservesItsStatusCode()
+    {
+        var httpContext = CreateHttpContext();
+        var exception = new BadHttpRequestException("Request body too large.", StatusCodes.Status413PayloadTooLarge);
+
+        using var document = await InvokeAsync(exception, httpContext);
+
+        Assert.Equal(StatusCodes.Status413PayloadTooLarge, httpContext.Response.StatusCode);
+        Assert.Equal(StatusCodes.Status413PayloadTooLarge, document.RootElement.GetProperty("status").GetInt32());
+    }
 }

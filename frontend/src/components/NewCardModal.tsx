@@ -201,7 +201,7 @@ export function NewCardModal() {
             </div>
           </div>
 
-          {!usesDefaultColumn && selectedAppId ? (
+          {selectedAppId && selectedAppBoard && !usesDefaultColumn ? (
             <p className="rounded-lg border border-amber-800 bg-amber-950 px-3 py-2 text-xs text-amber-300">
               This card will be added to the app's first column (Backlog). Open it from the board to target a
               different column.

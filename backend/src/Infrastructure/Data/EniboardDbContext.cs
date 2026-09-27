@@ -28,7 +28,8 @@ public class EniboardDbContext(DbContextOptions<EniboardDbContext> options)
     {
         if (!Database.IsMySql())
         {
-            return; // SQLite (tests) has no row locks / FOR UPDATE; it serializes writers itself.
+            return; // SQLite (tests) has no row locks / FOR UPDATE. The test suite sends requests sequentially over one shared in-memory connection,
+                     // so no lock is needed there (overlapping transactions on that connection would fail, not serialize). The MySQL SQL is covered by LockBoardColumnSqlTests.
         }
 
         await Database.ExecuteSqlInterpolatedAsync(
