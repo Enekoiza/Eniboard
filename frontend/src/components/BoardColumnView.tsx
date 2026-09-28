@@ -6,15 +6,16 @@ import { useUiStore } from "../stores/uiStore";
 interface BoardColumnViewProps {
   column: BoardColumn;
   appId: string;
+  onOpen: (cardId: string) => void;
 }
 
-export function BoardColumnView({ column, appId }: BoardColumnViewProps) {
+export function BoardColumnView({ column, appId, onOpen }: BoardColumnViewProps) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
   const openNewCardModal = useUiStore((state) => state.openNewCardModal);
   const isAtLimit = column.wipLimit != null && column.cards.length >= column.wipLimit;
 
   return (
-    <div className="flex w-72 shrink-0 flex-col gap-3">
+    <div className="flex min-w-0 flex-1 flex-col gap-3">
       <div className="flex items-center justify-between rounded-lg bg-gray-950/70 px-2 py-1.5">
         <h2 className="text-sm font-semibold text-gray-200">{column.name}</h2>
         <span
@@ -34,7 +35,7 @@ export function BoardColumnView({ column, appId }: BoardColumnViewProps) {
         }`}
       >
         {column.cards.map((card) => (
-          <CardItem key={card.id} card={card} />
+          <CardItem key={card.id} card={card} onOpen={onOpen} />
         ))}
         {column.cards.length === 0 ? (
           <p className="px-2 py-4 text-center text-xs text-gray-300">Drop cards here</p>

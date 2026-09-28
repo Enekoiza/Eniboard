@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { appsApi, cardsApi } from "../services/api";
-import type { Board, MoveCardRequest } from "../types";
+import type { Board, MoveCardRequest, UpdateCardRequest } from "../types";
 
 export function boardQueryKey(appId: string) {
   return ["board", appId] as const;
@@ -65,6 +65,33 @@ export function useMoveCard(appId: string | undefined) {
       }
     },
     onSettled: () => {
+      if (!appId) return;
+      void queryClient.invalidateQueries({ queryKey: boardQueryKey(appId) });
+    },
+  });
+}
+
+interface UpdateCardVariables {
+  cardId: string;
+  payload: UpdateCardRequest;
+}
+
+export function useUpdateCard(appId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ cardId, payload }: UpdateCardVariables) => cardsApi.update(cardId, payload),
+    onSuccess: () => {
+      if (!appId) return;
+      void queryClient.invalidateQueries({ queryKey: boardQueryKey(appId) });
+    },
+  });
+}
+
+export function useDeleteCard(appId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (cardId: string) => cardsApi.remove(cardId),
+    onSuccess: () => {
       if (!appId) return;
       void queryClient.invalidateQueries({ queryKey: boardQueryKey(appId) });
     },

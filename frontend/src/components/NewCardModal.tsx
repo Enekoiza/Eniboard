@@ -1,10 +1,11 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useApps } from "../hooks/useApps";
 import { boardQueryKey, useBoard } from "../hooks/useBoard";
+import { useDialogFocus } from "../hooks/useDialogFocus";
 import { cardsApi } from "../services/api";
 import { ApiError } from "../services/apiClient";
 import { useUiStore } from "../stores/uiStore";
@@ -89,6 +90,9 @@ export function NewCardModal() {
     },
   });
 
+  const titleId = useId();
+  const dialogRef = useDialogFocus<HTMLDivElement>(isOpen);
+
   if (!isOpen) {
     return null;
   }
@@ -105,11 +109,18 @@ export function NewCardModal() {
       role="presentation"
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
         className="w-full max-w-md rounded-card border border-white/10 bg-gray-950/80 p-6 shadow-2xl backdrop-blur-md"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-white">New card</h2>
+          <h2 id={titleId} className="text-lg font-semibold text-white">
+            New card
+          </h2>
           <button
             type="button"
             onClick={closeModal}

@@ -11,11 +11,14 @@ export interface AppSummary {
 
 export interface Card {
   id: string;
+  columnId: string;
   title: string;
   description?: string | null;
   cardType: CardType;
   priority: Priority;
   linkedBranch?: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface BoardColumn {
@@ -60,6 +63,13 @@ export interface CreateCardRequest {
 export interface MoveCardRequest {
   targetColumnId: string;
   linkedBranch?: string;
+}
+
+export interface UpdateCardRequest {
+  title: string;
+  description?: string;
+  cardType: CardType;
+  priority: Priority;
 }
 
 export interface ProblemDetails {
