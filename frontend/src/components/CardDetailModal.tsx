@@ -1,8 +1,9 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useBoard, useDeleteCard, useUpdateCard } from "../hooks/useBoard";
+import { useDialogFocus } from "../hooks/useDialogFocus";
 import { ApiError } from "../services/apiClient";
 import { CARD_TYPE_OPTIONS, PRIORITY_OPTIONS } from "../types/options";
 import { PRIORITY_STYLES, TYPE_LABELS } from "./CardItem";
@@ -14,8 +15,8 @@ interface CardDetailModalProps {
 }
 
 const updateCardSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  description: z.string().optional(),
+  title: z.string().trim().min(1, "Title is required").max(200, "Title must be 200 characters or fewer"),
+  description: z.string().max(4000, "Description must be 4000 characters or fewer").optional(),
   cardType: z.enum(["feature", "bug", "chore", "idea"]),
   priority: z.enum(["low", "medium", "high", "critical"]),
 });
@@ -50,17 +51,6 @@ export function CardDetailModal({ cardId, appId, onClose }: CardDetailModalProps
   });
 
   useEffect(() => {
-    if (card) {
-      reset({
-        title: card.title,
-        description: card.description ?? "",
-        cardType: card.cardType,
-        priority: card.priority,
-      });
-    }
-  }, [card, reset]);
-
-  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         onClose();
@@ -69,6 +59,9 @@ export function CardDetailModal({ cardId, appId, onClose }: CardDetailModalProps
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
+
+  const titleId = useId();
+  const dialogRef = useDialogFocus<HTMLDivElement>(!!card);
 
   if (!card || !column) {
     return null;
@@ -109,11 +102,18 @@ export function CardDetailModal({ cardId, appId, onClose }: CardDetailModalProps
       role="presentation"
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
         className="w-full max-w-lg rounded-card border border-white/10 bg-gray-950/80 p-6 shadow-2xl backdrop-blur-md"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-white">{isEditing ? "Edit card" : "Card details"}</h2>
+          <h2 id={titleId} className="text-lg font-semibold text-white">
+            {isEditing ? "Edit card" : "Card details"}
+          </h2>
           <button
             type="button"
             onClick={onClose}
@@ -155,6 +155,7 @@ export function CardDetailModal({ cardId, appId, onClose }: CardDetailModalProps
                 className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white outline-none focus:border-brand-focus"
                 {...register("description")}
               />
+              {errors.description ? <p className="text-xs text-red-400">{errors.description.message}</p> : null}
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -261,7 +262,15 @@ export function CardDetailModal({ cardId, appId, onClose }: CardDetailModalProps
             <div className="mt-2 flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setIsEditing(true)}
+                onClick={() => {
+                  reset({
+                    title: card.title,
+                    description: card.description ?? "",
+                    cardType: card.cardType,
+                    priority: card.priority,
+                  });
+                  setIsEditing(true);
+                }}
                 className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-dark"
               >
                 Edit

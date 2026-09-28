@@ -21,7 +21,7 @@ export const TYPE_LABELS: Record<Card["cardType"], string> = {
 };
 
 export function CardItem({ card, onOpen }: CardItemProps) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, isDragging } = useDraggable({
     id: card.id,
   });
 
@@ -33,7 +33,10 @@ export function CardItem({ card, onOpen }: CardItemProps) {
 
   return (
     <div
-      ref={setNodeRef}
+      ref={(element) => {
+        setNodeRef(element);
+        setActivatorNodeRef(element);
+      }}
       style={style}
       {...listeners}
       {...attributes}
@@ -42,7 +45,17 @@ export function CardItem({ card, onOpen }: CardItemProps) {
         isDragging ? "z-10 opacity-60" : ""
       }`}
     >
-      <p className="text-sm font-medium text-white">{card.title}</p>
+      <button
+        type="button"
+        aria-haspopup="dialog"
+        onClick={(event) => {
+          event.stopPropagation();
+          onOpen(card.id);
+        }}
+        className="text-left text-sm font-medium text-white hover:underline focus-visible:underline"
+      >
+        {card.title}
+      </button>
       {card.description ? <p className="line-clamp-2 text-xs text-gray-300">{card.description}</p> : null}
       <div className="flex flex-wrap items-center gap-2">
         <span className="rounded-full bg-gray-800 px-2 py-0.5 text-[11px] text-gray-300">
