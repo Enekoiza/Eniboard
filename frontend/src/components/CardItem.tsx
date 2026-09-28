@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import type { Card } from "../types";
 
@@ -23,7 +24,10 @@ export const TYPE_LABELS: Record<Card["cardType"], string> = {
 export function CardItem({ card, onOpen }: CardItemProps) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, isDragging } = useDraggable({
     id: card.id,
+    attributes: { role: "group" },
   });
+
+  const titleId = useId();
 
   const style = transform
     ? {
@@ -40,6 +44,7 @@ export function CardItem({ card, onOpen }: CardItemProps) {
       style={style}
       {...listeners}
       {...attributes}
+      aria-labelledby={titleId}
       onClick={() => onOpen(card.id)}
       className={`flex cursor-grab flex-col gap-2 rounded-lg border border-white/10 bg-gray-950/70 p-3 shadow-sm backdrop-blur-sm active:cursor-grabbing ${
         isDragging ? "z-10 opacity-60" : ""
@@ -47,6 +52,7 @@ export function CardItem({ card, onOpen }: CardItemProps) {
     >
       <button
         type="button"
+        id={titleId}
         aria-haspopup="dialog"
         onClick={(event) => {
           event.stopPropagation();

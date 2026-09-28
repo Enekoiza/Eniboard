@@ -20,6 +20,11 @@ export function AppShell({ children }: AppShellProps) {
       const isModifierPressed = event.metaKey || event.ctrlKey;
       if (isModifierPressed && event.key.toLowerCase() === "k") {
         event.preventDefault();
+        const isDragActive = useUiStore.getState().isDragActive;
+        const hasOpenDialog = document.querySelector('[aria-modal="true"]') !== null;
+        if (isDragActive || hasOpenDialog) {
+          return;
+        }
         openNewCardModal();
       }
     };

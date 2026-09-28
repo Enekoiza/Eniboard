@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import type { DragEndEvent } from "@dnd-kit/core";
 import { Link, useParams } from "react-router-dom";
@@ -8,6 +8,7 @@ import { BoardColumnView } from "../components/BoardColumnView";
 import { BranchLinkPrompt } from "../components/BranchLinkPrompt";
 import { CardDetailModal } from "../components/CardDetailModal";
 import { ApiError } from "../services/apiClient";
+import { useUiStore } from "../stores/uiStore";
 
 const DOING_COLUMN_NAME = "Doing";
 
@@ -25,6 +26,9 @@ export function BoardPage() {
   const [blockedMessage, setBlockedMessage] = useState<string | null>(null);
   const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const setDragActive = useUiStore((state) => state.setDragActive);
+
+  useEffect(() => () => setDragActive(false), [setDragActive]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -52,6 +56,7 @@ export function BoardPage() {
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
+    setDragActive(false);
     const { active, over } = event;
     if (!over || !board) return;
 
@@ -122,7 +127,12 @@ export function BoardPage() {
         </div>
       ) : null}
 
-      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+      <DndContext
+        sensors={sensors}
+        onDragStart={() => setDragActive(true)}
+        onDragEnd={handleDragEnd}
+        onDragCancel={() => setDragActive(false)}
+      >
         <div className="flex flex-col gap-4 pb-4 md:flex-row">
           {orderedColumns.map((column) => (
             <BoardColumnView
